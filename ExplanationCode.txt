@@ -1,0 +1,296 @@
+# CLIMCARE Application Code Structure and Explanation
+
+## 1. Main Screen (main_screen.dart)
+This is the main container screen of the application that handles navigation between major sections.
+
+Functions:
+- `_onItemTapped(int index)`: Handles bottom navigation bar item selection. When you tap on any icon in the bottom bar, this function updates which screen is shown.
+- `build()`: Creates the main layout with a bottom navigation bar and shows different screens (Dashboard, Analytics, Messages, Settings) based on which tab is selected.
+
+## 2. Notifications Screen (notifications_screen.dart)
+Displays user notifications and handles notification-related functionality.
+
+Widget Structure:
+- Shows a clean "No Notifications" state with a bell icon
+- Has a "Return To Home Page" button that intelligently handles navigation
+- Uses `CommonBackground` for consistent app theming
+
+## 3. Account Settings Screen (account_settings_screen.dart)
+Manages user account settings and profile information.
+
+Functions:
+- `_buildSettingsItem()`: Creates consistent, styled list items for each setting option. Takes an icon, title, and action to perform when tapped.
+- Handles various account actions:
+  * Edit Profile
+  * Change Email
+  * Update Phone Number
+  * Change Password
+  * Delete Account (with red warning color)
+
+## 4. Change Password Screen (change_password_screen.dart)
+Handles password change functionality with secure validation.
+
+Functions:
+- `_handleChangePassword()`: Manages the password change process:
+  * Validates current and new passwords
+  * Makes API call to update password
+  * Handles success/error states
+  * Shows appropriate feedback to user
+- `_buildPasswordField()`: Creates password input fields with:
+  * Show/hide password toggle
+  * Custom styling
+  * Error validation
+  * Label text
+
+## 5. Notification Settings Screen (notification_settings_screen.dart)
+Manages user notification preferences.
+
+Functions:
+- `_buildSwitchItem()`: Creates toggle switches for different notification options:
+  * Push Notifications
+  * Email Notifications
+  * Sound Alerts
+- State Management:
+  * `_pushNotificationsEnabled`
+  * `_emailNotificationsEnabled`
+  * `_soundAlertsEnabled`
+
+## 6. Authentication Provider (auth_provider.dart)
+Manages user authentication state and token handling.
+
+Functions:
+- `login(String token, UserProfile profile)`: Handles user login:
+  * Stores authentication token securely
+  * Saves user profile information
+  * Updates authentication state
+- `logout()`: Handles user logout:
+  * Clears stored token
+  * Removes user profile
+  * Updates authentication state
+- `tryAutoLogin()`: Attempts to restore previous login session:
+  * Checks for stored token
+  * Fetches user profile if token exists
+- `_fetchUserProfile()`: Internal function to get user profile from server
+
+## 7. Account Provider (account_provider.dart)
+Manages user account settings and preferences.
+
+Functions:
+- `loadSettings()`: Loads user preferences from device storage:
+  * Two-factor authentication status
+  * Biometrics settings
+  * Location services status
+- `updateProfile()`: Updates user profile information on the server
+- `toggleTwoFactor()`: Enables/disables two-factor authentication
+- `toggleBiometrics()`: Enables/disables biometric authentication
+- `toggleLocation()`: Enables/disables location services
+- `addDevice()`: Registers a new device to the account
+- `removeDevice()`: Removes a device from the account
+
+State Management:
+- Stores user profile information
+- Maintains list of connected devices
+- Tracks security and privacy settings
+
+Common Features Across Providers:
+1. Secure Storage:
+   - Uses FlutterSecureStorage for sensitive data
+   - SharedPreferences for user preferences
+   - Proper token management
+
+2. Error Handling:
+   - Graceful error recovery
+   - Debug logging
+   - User-friendly error messages
+
+3. State Updates:
+   - Proper use of ChangeNotifier
+   - Consistent state management
+   - Atomic updates
+
+Common Features Across Screens:
+1. Consistent Error Handling:
+   - User-friendly error messages
+   - Loading states during operations
+   - Network error handling
+
+2. UI/UX Patterns:
+   - Common background gradient
+   - Consistent color scheme (primary: #001D54, accent: #E07A5F)
+   - Rounded corners on interactive elements
+   - Clear visual feedback on actions
+
+3. Navigation:
+   - Back buttons where appropriate
+   - Logical flow between screens
+   - State preservation during navigation
+
+## 8. Data Models
+
+### UserProfile Model (user_profile.dart)
+Represents user information and preferences.
+
+Properties:
+- Required:
+  * `name`: User's display name
+  * `email`: User's email address
+- Optional:
+  * `phoneNumber`: Contact number
+  * `company`: User's organization
+  * `jobTitle`: Professional role
+  * `language`: Preferred language (defaults to 'en')
+  * `isDarkMode`: UI theme preference
+  * `avatar`: Profile picture URL
+  * `role`: User permission level (admin/user)
+
+Functions:
+- `toJson()`: Converts user data to JSON format for API calls
+- `fromJson()`: Creates UserProfile object from JSON data
+- `isAdmin`: Getter to check if user has admin privileges
+
+### Sensor Model (capteur.dart)
+Manages sensor data and readings.
+
+Properties:
+- `id`: Unique identifier for the sensor
+- `sound`: Sound level reading
+- `mq2`: Air quality sensor reading
+- `temperature`: Temperature reading
+- `timestamp`: When the reading was taken
+
+Functions:
+- `capteurFromJson()`: Converts JSON string to list of Capteur objects
+- `capteurToJson()`: Converts list of Capteur objects to JSON string
+- `fromJson()`: Creates single Capteur object from JSON data
+- `toJson()`: Converts single Capteur object to JSON format
+
+Features:
+- Null safety implementation
+- Default values for missing data
+- Timestamp handling with nullable support
+- Type conversion safety checks
+
+Common Features Across Models:
+1. Data Validation:
+   - Null safety
+   - Type checking
+   - Default values
+
+2. Serialization:
+   - JSON encoding/decoding
+   - API compatibility
+   - Data persistence support
+
+3. Type Safety:
+   - Strong typing
+   - Enumerated types where appropriate
+   - Proper null handling
+
+## 9. Reusable Widgets
+
+### Sensor Chart Widget (sensor_chart_widget.dart)
+A customizable chart widget for displaying sensor data.
+
+Properties:
+- `spots`: Data points for the chart
+- `title`: Chart title
+- `sensorName`: Name of the sensor
+- `titleColor`: Color for the title text
+- `gradientColors`: Colors for the chart gradient
+- `minY/maxY`: Optional Y-axis range limits
+
+Features:
+- Automatic Y-axis range calculation
+- Gradient-filled line chart
+- Interactive tooltips
+- Responsive grid lines
+- Custom styling and theming
+- Padding and spacing optimization
+
+### Custom Bottom Navigation (custom_bottom_nav.dart)
+Custom-styled bottom navigation bar for the app.
+
+Properties:
+- `currentIndex`: Currently selected tab
+- `onTap`: Callback for tab selection
+
+Features:
+- Custom styling with rounded corners
+- Shadow effects for depth
+- Animated selection indicators
+- Responsive layout
+- Icon and label combinations
+- Color transitions for selected state
+
+Functions:
+- `_buildNavItem()`: Creates individual navigation items with:
+  * Icon
+  * Label
+  * Selection state
+  * Touch feedback
+
+Common Features Across Widgets:
+1. Consistent Styling:
+   - Matching color schemes
+   - Unified border radius
+   - Consistent spacing
+   - Common shadow effects
+
+2. Responsive Design:
+   - Flexible layouts
+   - Size adaptability
+   - Proper constraints
+
+3. User Interaction:
+   - Touch feedback
+   - State indicators
+   - Smooth animations
+
+## 10. Services
+
+### Notification Service (notification_service.dart)
+Handles sensor threshold monitoring and notification generation.
+
+Thresholds:
+- Warning Levels:
+  * Gas: 500.0 units
+  * Temperature: 35.0°C
+  * Sound: 80.0 dB
+- Danger Levels:
+  * Gas: 600.0 units
+  * Temperature: 40.0°C
+  * Sound: 90.0 dB
+
+Functions:
+- `setThresholds()`: Updates warning and danger thresholds for:
+  * Gas levels
+  * Temperature
+  * Sound levels
+- `processSensorData()`: Monitors sensor readings and triggers notifications:
+  * Checks against danger thresholds first
+  * Then checks warning thresholds
+  * Logs appropriate warnings/dangers
+  * Triggers notifications based on severity
+
+Features:
+- Multi-level threshold monitoring
+- Flexible threshold configuration
+- Real-time data processing
+- Debug logging for monitoring
+- Separate warning and danger states
+
+Common Service Features:
+1. Configuration:
+   - Configurable thresholds
+   - Runtime updates
+   - Default values
+
+2. Monitoring:
+   - Real-time processing
+   - Multi-parameter tracking
+   - Priority-based checks
+
+3. Notification:
+   - Severity levels
+   - Debug logging
+   - Event triggering 
