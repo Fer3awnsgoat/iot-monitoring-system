@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import Provider
 import 'package:http/http.dart' as http; // Import http
 import '../providers/auth_provider.dart'; // Import AuthProvider
-// import '../widgets/app_header.dart'; // Not using custom header here
-
-// Base URL - Ensure this matches other screens
-const String baseUrl = "http://10.0.2.2:3001";
+import '../config.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -57,7 +54,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/user/change-password'),
+        Uri.parse('${Config.baseUrl}/user/change-password'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer ${authProvider.userProfile?.email}',

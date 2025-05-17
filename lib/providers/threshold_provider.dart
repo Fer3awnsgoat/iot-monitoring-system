@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../notification_service.dart'; // Adjusted import path
-
-const String baseUrl = "http://10.0.2.2:3001";
+import '../config.dart';
 
 class ThresholdProvider with ChangeNotifier {
   // Notification service instance
@@ -67,7 +66,7 @@ class ThresholdProvider with ChangeNotifier {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/thresholds'),
+        Uri.parse('${Config.baseUrl}/thresholds'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -184,7 +183,7 @@ class ThresholdProvider with ChangeNotifier {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/admin/thresholds'),
+        Uri.parse('${Config.baseUrl}/admin/thresholds'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

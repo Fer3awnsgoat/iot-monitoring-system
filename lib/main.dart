@@ -6,10 +6,22 @@ import 'package:apppfe/screens/main_screen.dart';
 import 'package:apppfe/providers/auth_provider.dart';
 import 'package:apppfe/providers/threshold_provider.dart';
 import 'notification_service.dart';
+import 'dart:io';
 
 // Fonction principal, tkhadem el application (MyApp).
 void main() {
+  HttpOverrides.global = MyHttpOverrides();
   runApp(const MyApp());
+}
+
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..connectionTimeout = const Duration(seconds: 10)
+      ..badCertificateCallback = (cert, host, port) =>
+          true; // Bypass certificate verification (for testing only)
+  }
 }
 
 class MyApp extends StatelessWidget {

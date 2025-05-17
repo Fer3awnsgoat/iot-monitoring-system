@@ -1,17 +1,13 @@
 import 'dart:convert';
-import 'dart:async'; // Ensure async is imported
+import 'dart:async';
 import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart'; // Remove unused import
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../notification_service.dart';
-import '../widgets/common_background.dart'; // Import common background
-import '../widgets/dashboard_stats_card.dart'; // Import the new card widget
-// import 'package:apppfe/providers/auth_provider.dart'; // Remove unused import
+import '../widgets/common_background.dart';
+import '../widgets/dashboard_stats_card.dart';
+import '../config.dart';
 
-// --- Configuration ---
-// Use the correct IP for your setup (Android Emulator)
-const String baseUrl = 'http://10.0.2.2:3001';
 // Colors for stat cards
 const Color _tempColor = Color(0xFFAA44C8);
 const Color _mq2Color = Color(0xFF15355E);
@@ -54,7 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/capteurs'));
+      final response = await http.get(Uri.parse('${Config.baseUrl}/capteurs'));
 
       if (!mounted) return;
 

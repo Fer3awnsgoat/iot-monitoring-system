@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http; // Import http package
 import '../models/capteur.dart' as api_model;
 import '../config.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SensorDataProvider with ChangeNotifier {
   bool _initialized = false;
@@ -73,13 +74,27 @@ class SensorDataProvider with ChangeNotifier {
       notifyListeners();
     }
 
+    final url = '${Config.baseUrl}/capteurs';
     try {
-      // Perform the HTTP GET request
-      final response = await http.get(Uri.parse('${Config.baseUrl}/capteurs'));
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
 
-      // Check if the widget is still mounted before proceeding
-      // Note: This check isn't strictly necessary in a Provider unless it's
-      // tightly coupled with a specific widget lifecycle, which is less common.
+      if (!Config.isProduction) debugPrint('SensorDataProvider: Fetching data from $url');
+
+      if (token == null) {
+        _apiFetchError = 'Not authenticated';
+        _isApiLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${Config.baseUrl}/capteurs'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> rawData = jsonDecode(response.body);
@@ -135,10 +150,19 @@ class SensorDataProvider with ChangeNotifier {
         _latestApiMq2 = null;
         _latestApiSound = null;
       }
-    } catch (e) {
-      debugPrint('Error fetching API data: $e');
-      _apiFetchError =
-          "Could not connect to the server."; // More specific error
+    } on TimeoutException catch (e, s) {
+      _apiFetchError = "Connection timed out";
+      if (Config.debugLoggingEnabled) {
+        debugPrint('SensorDataProvider: Request timed out: $e');
+        debugPrint('Stack trace: $s');
+      }
+    } catch (e, s) {
+      _apiFetchError = "Could not connect to the server";
+      if (Config.debugLoggingEnabled) {
+        debugPrint('SensorDataProvider: Error fetching data from $url (this URL is from Config.baseUrl)');
+        debugPrint('SensorDataProvider: Low-level error details: $e');
+        debugPrint('SensorDataProvider: Stack trace: $s');
+      }
       _fullApiDataList = [];
       _latestApiTemperature = null;
       _latestApiMq2 = null;
@@ -148,11 +172,6 @@ class SensorDataProvider with ChangeNotifier {
       notifyListeners(); // Notify listeners about loading state change and potential error/new data
     }
   }
-
-  // Removed methods related to internal SensorData, WS/MQTT: _processSensorData,
-  // _processHistoryData, _requestSensorHistory, getSensorData, getDataForTimeRange,
-  // getLatestValue (users can access latestApi... directly), hasSensorData,
-  // getSensorChartData (chart preparation is now in AnalyticsScreen)
 
   @override
   void dispose() {

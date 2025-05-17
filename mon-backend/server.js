@@ -1,67 +1,68 @@
+// 1. Load environment variables FIRST
+require('dotenv').config();
+
+// 2. Import required modules
 const mqtt = require('mqtt');
-// Connexion au broker MQTT (ici un exemple public, tu peux utiliser Mosquitto ou HiveMQ)
-const mqttClient = mqtt.connect('mqtts://7acbf0113cb946a0a2d2f4a344294183.s1.eu.hivemq.cloud', {
-  username: 'AMpfe',
-  password: 'AhmedAmine0123'
-});
-mqttClient.on('connect', () => {
-  console.log(' Connecté au broker MQTT');
-
-  // S'abonner au topic où l'ESP32 publie les données
-  mqttClient.subscribe('esp32/sensors', (err) => {
-    if (err) {
-      console.error(' Erreur lors de l\'abonnement au topic MQTT');
-    }
-  });
-});
-
-// Quand un message est reçu sur le topic
-mqttClient.on('message', async (topic, message) => {
-  try {
-    const data = JSON.parse(message.toString());
-    console.log(' Données MQTT reçues :', data);
-
-    const newCapteur = new Capteur(data);
-    await newCapteur.save();
-    console.log(' Données sauvegardées dans MongoDB');
-  } catch (err) {
-    console.error(' Erreur traitement MQTT :', err);
-  }
-});
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const Capteur = require('./models/Capteur'); // Importer le modèle
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken'); // Add JWT
+const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const Threshold = require('./models/Threshold'); // Import Threshold model
-const PendingUser = require('./models/PendingUser'); // Import PendingUser model
 const nodemailer = require('nodemailer');
 
-const app = express();
-const port = 3001;
+// 3. Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/iot-monitoring', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => {
+  console.log("MongoDB connected successfully");
+  
+  // 4. Now load models AFTER connection is established
+  const Capteur = require('./models/Capteur');
+  const Threshold = require('./models/Threshold');
+  const PendingUser = require('./models/PendingUser');
+  const User = require('./models/User');
+  const Notification = require('./models/Notification');
+  
+  // 5. Initialize MQTT client
+  const mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
+    username: process.env.MQTT_USERNAME,
+    password: process.env.MQTT_PASSWORD,
+    port: 8883
+  });
 
-// JWT Secret Key
-const JWT_SECRET = 'your-secret-key'; // Change this to a secure secret key in production
+  mqttClient.on('connect', () => {
+    console.log('Connecté au broker MQTT');
+    mqttClient.subscribe('esp32/sensors', (err) => {
+      if (err) console.error('Erreur d\'abonnement MQTT:', err);
+    });
+  });
 
-// Use CORS middleware
-app.use(cors());
+  mqttClient.on('message', async (topic, message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      const newCapteur = new Capteur(data);
+      await newCapteur.save();
+      console.log('Données MQTT sauvegardées');
+    } catch (err) {
+      console.error('Erreur traitement MQTT:', err);
+    }
+  });
+
+  // 6. Initialize Express app
+  const app = express();
+  const port = process.env.PORT || 3001;
+  const JWT_SECRET = process.env.JWT_SECRET;
+
+  // Middleware
+ app.use(cors());
+
 
 
 // Middleware
 app.use(bodyParser.json());
-
-// Connexion à MongoDB
-mongoose.connect('mongodb+srv://kaabachi1990:PFE0123@cluster0.3cqqv.mongodb.net/mon-backend?retryWrites=true&w=majority')
-  .then(() => {
-    console.log(" MongoDB connecté");
-  })
-  .catch((err) => {
-    console.error(" Erreur de connexion à MongoDB :", err);
-  });
-
-  const User = require('./models/User');
   
   // Modified Registration endpoint - now creates pending registration instead
   app.post('/register', async (req, res) => {
@@ -130,7 +131,7 @@ app.post('/data', async (req, res) => {
 
     res.status(200).json({ message: 'Données enregistrées avec succès !', data: newCapteur });
   } catch (err) {
-    console.error('❌ Erreur lors de l\'enregistrement des données :', err);
+    console.error('Erreur lors de l\'enregistrement des données :', err);
     res.status(500).json({ error: 'Erreur lors de l\'enregistrement des données' });
   }
 });
@@ -144,7 +145,7 @@ app.get('/capteurs', async (req, res) => {
     }
     res.json(capteurs);
   } catch (err) {
-    console.error('❌ Erreur lors de la récupération des données :', err);
+    console.error(' Erreur lors de la récupération des données :', err);
     res.status(500).json({ error: 'Erreur lors de la récupération des données' });
   }
 });
@@ -188,7 +189,7 @@ app.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('❌ Login error:', err);
+    console.error(' Login error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -288,7 +289,7 @@ app.post('/user/change-password', authenticateToken, async (req, res) => {
     res.json({ message: 'Password updated successfully' });
 
   } catch (err) {
-    console.error('❌ Change Password error:', err);
+    console.error(' Change Password error:', err);
     res.status(500).json({ error: 'Internal server error during password update' });
   }
 });
@@ -303,7 +304,7 @@ app.get('/admin/pending-registrations', authenticateToken, isAdmin, async (req, 
     
     res.json(pendingUsers);
   } catch (err) {
-    console.error('❌ Fetch pending users error:', err);
+    console.error(' Fetch pending users error:', err);
     res.status(500).json({ error: 'Error fetching pending registrations' });
   }
 });
@@ -343,7 +344,7 @@ app.post('/admin/registration-decision/:id', authenticateToken, isAdmin, async (
       res.status(400).json({ error: 'Invalid decision. Use "approve" or "reject"' });
     }
   } catch (err) {
-    console.error('❌ Registration decision error:', err);
+    console.error(' Registration decision error:', err);
     res.status(500).json({ error: 'Error processing registration decision' });
   }
 });
@@ -362,7 +363,7 @@ app.get('/thresholds', authenticateToken, async (req, res) => {
     
     res.json(thresholds);
   } catch (err) {
-    console.error('❌ Fetch thresholds error:', err);
+    console.error(' Fetch thresholds error:', err);
     res.status(500).json({ error: 'Error fetching thresholds' });
   }
 });
@@ -413,25 +414,23 @@ app.post('/admin/thresholds', authenticateToken, isAdmin, async (req, res) => {
   }
 
   try {
-    // Create a new Threshold document with all the values
-    const newThresholds = new Threshold({
-      gasThreshold,
-      tempThreshold,
-      soundThreshold,
-      gasWarningThreshold,
-      tempWarningThreshold,
-      soundWarningThreshold,
-      gasDangerThreshold,
-      tempDangerThreshold,
-      soundDangerThreshold,
-      updatedBy: req.user.userId // Record who updated it
-    });
+   const updatedThresholds = await Threshold.findOneAndUpdate(
+  {}, // match any
+  {
+    gasThreshold,
+    tempThreshold,
+    soundThreshold,
+    gasWarningThreshold,
+    tempWarningThreshold,
+    soundWarningThreshold,
+    gasDangerThreshold,
+    tempDangerThreshold,
+    soundDangerThreshold,
+    updatedBy: req.user.userId
+  },
+  { new: true, upsert: true, sort: { createdAt: -1 } }
+);
 
-    // Save the new set of thresholds
-    await newThresholds.save();
-
-    // Verify that the thresholds were saved correctly
-    const savedThresholds = await Threshold.findById(newThresholds._id);
     
     // Check if the saved values match what was sent
     const isCorrectlySaved = 
@@ -446,7 +445,7 @@ app.post('/admin/thresholds', authenticateToken, isAdmin, async (req, res) => {
       savedThresholds.soundDangerThreshold === soundDangerThreshold;
     
     if (!isCorrectlySaved) {
-      console.warn('⚠️ Thresholds verification failed - saved values don\'t match input');
+      console.warn(' Thresholds verification failed - saved values don\'t match input');
     }
 
     // Add verification result to the response
@@ -457,7 +456,7 @@ app.post('/admin/thresholds', authenticateToken, isAdmin, async (req, res) => {
     });
     
   } catch (err) {
-    console.error('❌ Update thresholds error:', err);
+    console.error(' Update thresholds error:', err);
     res.status(500).json({ error: 'Error updating thresholds' });
   }
 });
@@ -470,9 +469,6 @@ const transporter = nodemailer.createTransport({
     pass: 'your-gmail-password'       // Replace with your password or app password
   }
 });
-
-// Import Notification model
-const Notification = require('./models/Notification');
 
 // Add notification endpoint
 app.post('/notifications', authenticateToken, async (req, res) => {
@@ -563,7 +559,7 @@ app.delete('/user/devices/:deviceId', authenticateToken, async (req, res) => {
       deviceId: deviceId
     });
   } catch (err) {
-    console.error('❌ Device deregistration error:', err);
+    console.error(' Device deregistration error:', err);
     res.status(500).json({ error: 'Error deregistering device' });
   }
 });
@@ -572,3 +568,6 @@ app.delete('/user/devices/:deviceId', authenticateToken, async (req, res) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(` Serveur en écoute sur http://0.0.0.0:${port}`);
 });
+});
+
+

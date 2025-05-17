@@ -1,0 +1,10 @@
+<network-security-config>
+    <!-- Default: Block cleartext for all domains -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Production config: relies on base-config which blocks cleartext -->
+</network-security-config>

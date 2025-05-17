@@ -7,8 +7,6 @@ import '../models/user_profile.dart'; // Import the model
 import '../models/device.dart';
 import '../config.dart';
 
-const String baseUrl = "http://10.0.2.2:3001";
-
 // Placeholder AccountProvider
 class AccountProvider with ChangeNotifier {
   final _prefs = SharedPreferences.getInstance();
@@ -44,7 +42,7 @@ class AccountProvider with ChangeNotifier {
   Future<void> updateProfile(UserProfile newProfile) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/user/profile'),
+        Uri.parse('$Config.baseUrl/user/profile'),
         headers: {
           'Content-Type': 'application/json',
         },

@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_profile.dart';
 import '../config.dart';
+import 'dart:async';
 
 // Placeholder AuthProvider
 class AuthProvider with ChangeNotifier {
@@ -34,20 +35,43 @@ class AuthProvider with ChangeNotifier {
       if (token == null) return false;
 
       _token = token;
-      await _fetchUserProfile();
+
+      // Add timeout duration directly (no need for separate exception)
+      await _fetchUserProfile().timeout(
+        const Duration(seconds: 10),
+      );
+
       return true;
-    } catch (e) {
-      debugPrint('Auto login error: $e');
+    } on TimeoutException catch (e, s) {
+      if (Config.debugLoggingEnabled) {
+        debugPrint('Auth Provider: Auto login timeout: $e');
+        debugPrint('Stack trace: $s');
+      }
+      return false;
+    } catch (e, s) {
+      if (Config.debugLoggingEnabled) {
+        debugPrint('Auth Provider: Auto login error: $e');
+        debugPrint('Stack trace: $s');
+      }
       return false;
     }
   }
 
   Future<void> _fetchUserProfile() async {
+    final url = '${Config.baseUrl}/user/profile';
+    if (Config.debugLoggingEnabled) {
+      debugPrint('Auth Provider: Attempting to fetch user profile from $url');
+    }
     try {
       final response = await http.get(
-        Uri.parse('${Config.baseUrl}/user/profile'),
+        Uri.parse(url),
         headers: {'Authorization': 'Bearer $_token'},
-      );
+      ).timeout(const Duration(seconds: 10));
+
+      if (Config.debugLoggingEnabled) {
+        debugPrint('Auth Provider: Profile fetch response status: ${response.statusCode}');
+        debugPrint('Auth Provider: Profile fetch response body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -56,9 +80,21 @@ class AuthProvider with ChangeNotifier {
           email: data['email'] ?? 'no-email@example.com',
         );
         notifyListeners();
+      } else {
+        if (Config.debugLoggingEnabled) {
+          debugPrint('Auth Provider: Failed to fetch profile. Status: ${response.statusCode}');
+        }
       }
-    } catch (e) {
-      debugPrint('Error fetching profile: $e');
+    } on TimeoutException catch (e, s) {
+      if (Config.debugLoggingEnabled) {
+        debugPrint('Auth Provider: Timeout fetching profile from $url: $e');
+        debugPrint('Stack trace: $s');
+      }
+    } catch (e, s) {
+      if (Config.debugLoggingEnabled) {
+        debugPrint('Auth Provider: Error fetching profile from $url: $e');
+        debugPrint('Stack trace: $s');
+      }
     }
   }
 }

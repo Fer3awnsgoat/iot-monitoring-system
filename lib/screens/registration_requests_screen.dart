@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
-import '../models/pending_user.dart'; // Adjusted import path
-import '../providers/auth_provider.dart'; // Adjusted import path
-import '../widgets/common_background.dart'; // Import
-
-const String baseUrl = "http://10.0.2.2:3001";
+import '../models/pending_user.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/common_background.dart';
+import '../config.dart';
 
 class RegistrationRequestsScreen extends StatefulWidget {
   const RegistrationRequestsScreen({super.key});
@@ -49,7 +48,7 @@ class _RegistrationRequestsScreenState
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/admin/pending-registrations'),
+        Uri.parse('${Config.baseUrl}/admin/pending-registrations'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -94,7 +93,7 @@ class _RegistrationRequestsScreenState
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/admin/registration-decision/$id'),
+        Uri.parse('${Config.baseUrl}/admin/registration-decision/$id'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

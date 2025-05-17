@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http; // Import http package
+import '../config.dart';
 
 // Removed Provider import
 // Removed SensorDataProvider import
@@ -12,7 +13,6 @@ import '../widgets/common_background.dart'; // Use common background
 import '../models/capteur.dart' as api_model; // Assuming model exists
 
 // Define baseUrl locally or import from a config file
-const String baseUrl = 'http://10.0.2.2:3001';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -44,7 +44,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     });
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/capteurs'));
+      final response = await http.get(Uri.parse('${Config.baseUrl}/capteurs'));
 
       if (!mounted) return;
 

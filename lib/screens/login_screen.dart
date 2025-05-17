@@ -5,6 +5,8 @@ import 'package:provider/provider.dart'; // Import provider
 import 'package:apppfe/providers/auth_provider.dart'; // Import AuthProvider
 import 'package:apppfe/models/user_profile.dart'; // Import UserProfile
 import '../config.dart';
+import 'dart:io';
+import 'dart:async';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,69 +30,78 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        final response = await http.post(
-          Uri.parse('${Config.baseUrl}/login'),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
-          body: jsonEncode(<String, String>{
-            'username': _usernameController.text,
-            'password': _passwordController.text,
-          }),
-        );
+    setState(() => _isLoading = true);
 
-        if (!mounted) return;
+    try {
+      debugPrint('Attempting login to: ${Config.loginEndpoint}');
 
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final navigator = Navigator.of(context);
+      final response = await http
+          .post(
+            Uri.parse(Config.loginEndpoint),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'username': _usernameController.text,
+              'password': _passwordController.text,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
-        if (response.statusCode == 200) {
-          final responseBody = jsonDecode(response.body);
-          final token = responseBody['token'] as String?;
-          final userData = responseBody['user'] as Map<String, dynamic>?;
+      debugPrint('Response Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
 
-          if (token != null && userData != null) {
-            final userProfile = UserProfile(
-              name: userData['username'] ?? 'Unknown User',
-              email: userData['email'] ?? 'no-email@example.com',
-              role:
-                  userData['role'] == 'admin' ? UserRole.admin : UserRole.user,
-            );
-            await authProvider.login(token, userProfile);
-            navigator.pushReplacementNamed('/main');
-          }
-        } else {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Invalid email or password'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } catch (e) {
-        if (!mounted) return;
-        debugPrint('Login error: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not connect to the server'),
-            backgroundColor: Colors.red,
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await Provider.of<AuthProvider>(context, listen: false).login(
+          data['token'],
+          UserProfile(
+            name: data['user']['username'],
+            email: data['user']['email'],
+            role: data['user']['role'] == 'admin'
+                ? UserRole.admin
+                : UserRole.user,
           ),
         );
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        Navigator.pushReplacementNamed(context, '/main');
+      } else {
+        // Enhanced error handling
+        final errorMessage = _parseErrorResponse(response);
+        _showErrorSnackBar(errorMessage);
       }
+    } on SocketException catch (e) {
+      debugPrint('Network Error: ${e.message}');
+      _showErrorSnackBar('Network error: Could not reach server');
+    } on TimeoutException catch (e) {
+      debugPrint('Timeout Error: ${e.message}');
+      _showErrorSnackBar('Request timed out. Please check your connection.');
+    } catch (e) {
+      debugPrint('Unexpected Error: $e');
+      _showErrorSnackBar('An unexpected error occurred');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _parseErrorResponse(http.Response response) {
+    try {
+      final errorBody = json.decode(response.body);
+      return errorBody['message'] ?? 'Login failed: Unknown error';
+    } catch (_) {
+      return 'Login failed with status ${response.statusCode}';
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
