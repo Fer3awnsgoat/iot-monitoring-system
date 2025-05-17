@@ -33,6 +33,11 @@ class MyApp extends StatelessWidget {
     // Create a single instance of NotificationService
     final notificationService = NotificationService();
 
+    // Initialize thresholds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notificationService.initializeThresholds();
+    });
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),

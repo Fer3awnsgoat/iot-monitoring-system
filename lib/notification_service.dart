@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'models/notification.dart';
 import 'config.dart';
+import 'dart:async';
 
 class NotificationService {
   // Storage for secure data
@@ -30,17 +31,56 @@ class NotificationService {
   // Getter for notifications
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
 
+  // Initialize and sync thresholds from backend
+  Future<void> initializeThresholds() async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null) {
+        debugPrint('No auth token found for threshold sync');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(Config.thresholdsEndpoint),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Failed to fetch thresholds');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setThresholds(
+          gasThreshold: data['gas']['normal'].toDouble(),
+          tempThreshold: data['temperature']['normal'].toDouble(),
+          soundThreshold: data['sound']['normal'].toDouble(),
+          gasWarningThreshold: data['gas']['warning'].toDouble(),
+          tempWarningThreshold: data['temperature']['warning'].toDouble(),
+          soundWarningThreshold: data['sound']['warning'].toDouble(),
+          gasDangerThreshold: data['gas']['danger'].toDouble(),
+          tempDangerThreshold: data['temperature']['danger'].toDouble(),
+          soundDangerThreshold: data['sound']['danger'].toDouble(),
+        );
+      } else {
+        debugPrint('Failed to fetch thresholds: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Error syncing thresholds: $e');
+    }
+  }
+
   // Method to update thresholds externally
   void setThresholds({
-    // Normal thresholds
     required double gasThreshold,
     required double tempThreshold,
     required double soundThreshold,
-    // Warning thresholds
     required double gasWarningThreshold,
     required double tempWarningThreshold,
     required double soundWarningThreshold,
-    // Danger thresholds
     required double gasDangerThreshold,
     required double tempDangerThreshold,
     required double soundDangerThreshold,
@@ -176,13 +216,20 @@ class NotificationService {
         return;
       }
 
-      final response = await http.post(
-        Uri.parse('${Config.baseUrl}/notifications'),
+      final response = await http
+          .post(
+        Uri.parse(Config.notificationsEndpoint),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(notification.toJson()),
+      )
+          .timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Failed to send notification');
+        },
       );
 
       if (response.statusCode != 200) {

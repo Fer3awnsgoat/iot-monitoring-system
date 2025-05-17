@@ -189,7 +189,7 @@ class _AlertThresholdScreenState extends State<AlertThresholdScreen> {
 
                             // Gas thresholds section
                             _buildThresholdSection(
-                              title: 'Gas Thresholds (MQ-7)',
+                              title: 'Gas Thresholds (ppm)',
                               normalController: _gasController,
                               warningController: _gasWarningController,
                               dangerController: _gasDangerController,
@@ -429,24 +429,13 @@ class _AlertThresholdScreenState extends State<AlertThresholdScreen> {
       )
           .then((_) {
         if (provider.error == null) {
-          // Show different messages based on verification status
-          if (provider.verified) {
-            scaffoldMessenger.showSnackBar(
-              const SnackBar(
-                content: Text('Thresholds updated and verified successfully'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            // Show warning if thresholds were saved but verification failed
-            scaffoldMessenger.showSnackBar(
-              const SnackBar(
-                content: Text(
-                    'Thresholds updated but verification failed - please refresh'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
+          // Show success message
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('Thresholds updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
         } else {
           // Show error message
           scaffoldMessenger.showSnackBar(

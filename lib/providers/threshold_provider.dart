@@ -2,12 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../notification_service.dart'; // Adjusted import path
+import '../notification_service.dart';
 import '../config.dart';
+import 'dart:async';
 
 class ThresholdProvider with ChangeNotifier {
-  // Notification service instance
   final NotificationService _notificationService = NotificationService();
+  final _storage = const FlutterSecureStorage();
 
   // Normal thresholds
   double _gasThreshold = 300.0;
@@ -26,247 +27,236 @@ class ThresholdProvider with ChangeNotifier {
 
   bool _isLoading = false;
   String? _error;
-  bool _verified = false; // Track if the last update was verified successfully
 
-  // Getters for normal thresholds
+  // Getters
   double get gasThreshold => _gasThreshold;
   double get tempThreshold => _tempThreshold;
   double get soundThreshold => _soundThreshold;
 
-  // Getters for warning thresholds
   double get gasWarningThreshold => _gasWarningThreshold;
   double get tempWarningThreshold => _tempWarningThreshold;
   double get soundWarningThreshold => _soundWarningThreshold;
 
-  // Getters for danger thresholds
   double get gasDangerThreshold => _gasDangerThreshold;
   double get tempDangerThreshold => _tempDangerThreshold;
   double get soundDangerThreshold => _soundDangerThreshold;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get verified => _verified; // Add getter for verification status
 
   // Load thresholds from server
   Future<void> loadThresholds() async {
     _isLoading = true;
     _error = null;
-    _verified = false;
     notifyListeners();
 
     try {
-      const storage = FlutterSecureStorage();
-      final token = await storage.read(key: 'auth_token');
-
+      final token = await _storage.read(key: 'auth_token');
       if (token == null) {
         _error = 'Not authenticated';
-        _isLoading = false;
-        notifyListeners();
         return;
       }
 
       final response = await http.get(
-        Uri.parse('${Config.baseUrl}/thresholds'),
+        Uri.parse(Config.thresholdsEndpoint),
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
+        },
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Failed to load thresholds');
         },
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Normal thresholds
-        _gasThreshold = (data['gasThreshold'] ?? 300.0).toDouble();
-        _tempThreshold = (data['tempThreshold'] ?? 30.0).toDouble();
-        _soundThreshold = (data['soundThreshold'] ?? 60.0).toDouble();
+        // Update thresholds from new structure
+        _gasThreshold = data['gas']['normal'].toDouble();
+        _gasWarningThreshold = data['gas']['warning'].toDouble();
+        _gasDangerThreshold = data['gas']['danger'].toDouble();
 
-        // Warning thresholds
-        _gasWarningThreshold =
-            (data['gasWarningThreshold'] ?? 450.0).toDouble();
-        _tempWarningThreshold =
-            (data['tempWarningThreshold'] ?? 40.0).toDouble();
-        _soundWarningThreshold =
-            (data['soundWarningThreshold'] ?? 80.0).toDouble();
+        _tempThreshold = data['temperature']['normal'].toDouble();
+        _tempWarningThreshold = data['temperature']['warning'].toDouble();
+        _tempDangerThreshold = data['temperature']['danger'].toDouble();
 
-        // Danger thresholds
-        _gasDangerThreshold = (data['gasDangerThreshold'] ?? 600.0).toDouble();
-        _tempDangerThreshold = (data['tempDangerThreshold'] ?? 50.0).toDouble();
-        _soundDangerThreshold =
-            (data['soundDangerThreshold'] ?? 100.0).toDouble();
+        _soundThreshold = data['sound']['normal'].toDouble();
+        _soundWarningThreshold = data['sound']['warning'].toDouble();
+        _soundDangerThreshold = data['sound']['danger'].toDouble();
 
-        // Validate threshold relationships
+        // Validate thresholds
         _validateThresholdRelationships();
 
-        // Update thresholds in notification service
+        // Update notification service
         _updateNotificationServiceThresholds();
-
-        _verified = true; // Assume initial load is verified
       } else {
-        _error = 'Failed to load thresholds';
+        _error = 'Failed to load thresholds: ${response.statusCode}';
       }
     } catch (e) {
-      _error = 'Error: $e';
+      _error = 'Error loading thresholds: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Validate threshold relationships (normal < warning < dangerous)
-  void _validateThresholdRelationships() {
-    // Gas thresholds validation
-    if (_gasThreshold >= _gasWarningThreshold ||
-        _gasWarningThreshold >= _gasDangerThreshold) {
-      _error =
-          'Invalid gas threshold values: normal < warning < dangerous required';
-    }
-
-    // Temperature thresholds validation
-    if (_tempThreshold >= _tempWarningThreshold ||
-        _tempWarningThreshold >= _tempDangerThreshold) {
-      _error =
-          'Invalid temperature threshold values: normal < warning < dangerous required';
-    }
-
-    // Sound thresholds validation
-    if (_soundThreshold >= _soundWarningThreshold ||
-        _soundWarningThreshold >= _soundDangerThreshold) {
-      _error =
-          'Invalid sound threshold values: normal < warning < dangerous required';
-    }
-  }
-
-  // Save thresholds to server (admin only)
+  // Save thresholds to server
   Future<void> saveThresholds({
-    // Normal thresholds
     required double gasThreshold,
     required double tempThreshold,
     required double soundThreshold,
-    // Warning thresholds
     required double gasWarningThreshold,
     required double tempWarningThreshold,
     required double soundWarningThreshold,
-    // Danger thresholds
     required double gasDangerThreshold,
     required double tempDangerThreshold,
     required double soundDangerThreshold,
   }) async {
     _isLoading = true;
     _error = null;
-    _verified = false;
     notifyListeners();
 
     try {
-      const storage = FlutterSecureStorage();
-      final token = await storage.read(key: 'auth_token');
-
+      final token = await _storage.read(key: 'auth_token');
       if (token == null) {
         _error = 'Not authenticated';
-        _isLoading = false;
-        notifyListeners();
         return;
       }
 
-      // Local validation before sending to server
-      if (gasThreshold >= gasWarningThreshold ||
-          gasWarningThreshold >= gasDangerThreshold ||
-          tempThreshold >= tempWarningThreshold ||
-          tempWarningThreshold >= tempDangerThreshold ||
-          soundThreshold >= soundWarningThreshold ||
-          soundWarningThreshold >= soundDangerThreshold) {
-        _error =
-            'Invalid threshold values: thresholds must follow pattern normal < warning < dangerous';
-        _isLoading = false;
-        notifyListeners();
+      // Validate thresholds locally first
+      if (!_validateThresholdValues(
+        gas: gasThreshold,
+        gasWarning: gasWarningThreshold,
+        gasDanger: gasDangerThreshold,
+        temp: tempThreshold,
+        tempWarning: tempWarningThreshold,
+        tempDanger: tempDangerThreshold,
+        sound: soundThreshold,
+        soundWarning: soundWarningThreshold,
+        soundDanger: soundDangerThreshold,
+      )) {
         return;
       }
 
-      final response = await http.post(
-        Uri.parse('${Config.baseUrl}/admin/thresholds'),
+      final response = await http
+          .put(
+        Uri.parse(Config.thresholdsEndpoint),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          // Normal thresholds
-          'gasThreshold': gasThreshold,
-          'tempThreshold': tempThreshold,
-          'soundThreshold': soundThreshold,
-          // Warning thresholds
-          'gasWarningThreshold': gasWarningThreshold,
-          'tempWarningThreshold': tempWarningThreshold,
-          'soundWarningThreshold': soundWarningThreshold,
-          // Danger thresholds
-          'gasDangerThreshold': gasDangerThreshold,
-          'tempDangerThreshold': tempDangerThreshold,
-          'soundDangerThreshold': soundDangerThreshold,
+          'gas': {
+            'normal': gasThreshold,
+            'warning': gasWarningThreshold,
+            'danger': gasDangerThreshold,
+          },
+          'temperature': {
+            'normal': tempThreshold,
+            'warning': tempWarningThreshold,
+            'danger': tempDangerThreshold,
+          },
+          'sound': {
+            'normal': soundThreshold,
+            'warning': soundWarningThreshold,
+            'danger': soundDangerThreshold,
+          },
         }),
+      )
+          .timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Failed to save thresholds');
+        },
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Check if the server verified the threshold updates
-        _verified = data['verified'] ?? false;
+        // Update local values
+        _gasThreshold = gasThreshold;
+        _gasWarningThreshold = gasWarningThreshold;
+        _gasDangerThreshold = gasDangerThreshold;
 
-        if (!_verified) {
-          _error = 'Thresholds saved but verification failed. Please refresh.';
-          _isLoading = false;
-          notifyListeners();
-          return;
-        }
+        _tempThreshold = tempThreshold;
+        _tempWarningThreshold = tempWarningThreshold;
+        _tempDangerThreshold = tempDangerThreshold;
 
-        // Update local values from the server response to ensure they match
-        final thresholds = data['thresholds'];
+        _soundThreshold = soundThreshold;
+        _soundWarningThreshold = soundWarningThreshold;
+        _soundDangerThreshold = soundDangerThreshold;
 
-        // Normal thresholds
-        _gasThreshold = (thresholds['gasThreshold'] ?? 300.0).toDouble();
-        _tempThreshold = (thresholds['tempThreshold'] ?? 30.0).toDouble();
-        _soundThreshold = (thresholds['soundThreshold'] ?? 60.0).toDouble();
-
-        // Warning thresholds
-        _gasWarningThreshold =
-            (thresholds['gasWarningThreshold'] ?? 450.0).toDouble();
-        _tempWarningThreshold =
-            (thresholds['tempWarningThreshold'] ?? 40.0).toDouble();
-        _soundWarningThreshold =
-            (thresholds['soundWarningThreshold'] ?? 80.0).toDouble();
-
-        // Danger thresholds
-        _gasDangerThreshold =
-            (thresholds['gasDangerThreshold'] ?? 600.0).toDouble();
-        _tempDangerThreshold =
-            (thresholds['tempDangerThreshold'] ?? 50.0).toDouble();
-        _soundDangerThreshold =
-            (thresholds['soundDangerThreshold'] ?? 100.0).toDouble();
-
-        // Update thresholds in notification service
+        // Update notification service
         _updateNotificationServiceThresholds();
       } else {
-        final data = jsonDecode(response.body);
-        _error = data['error'] ?? 'Failed to update thresholds';
+        _error = 'Failed to save thresholds: ${response.statusCode}';
       }
     } catch (e) {
-      _error = 'Error: $e';
+      _error = 'Error saving thresholds: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Helper method to update thresholds in notification service
+  void _validateThresholdRelationships() {
+    if (_gasThreshold >= _gasWarningThreshold ||
+        _gasWarningThreshold >= _gasDangerThreshold) {
+      _error = 'Invalid gas thresholds: normal < warning < danger required';
+    }
+    if (_tempThreshold >= _tempWarningThreshold ||
+        _tempWarningThreshold >= _tempDangerThreshold) {
+      _error =
+          'Invalid temperature thresholds: normal < warning < danger required';
+    }
+    if (_soundThreshold >= _soundWarningThreshold ||
+        _soundWarningThreshold >= _soundDangerThreshold) {
+      _error = 'Invalid sound thresholds: normal < warning < danger required';
+    }
+  }
+
+  bool _validateThresholdValues({
+    required double gas,
+    required double gasWarning,
+    required double gasDanger,
+    required double temp,
+    required double tempWarning,
+    required double tempDanger,
+    required double sound,
+    required double soundWarning,
+    required double soundDanger,
+  }) {
+    if (gas >= gasWarning || gasWarning >= gasDanger) {
+      _error = 'Invalid gas thresholds: normal < warning < danger required';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+    if (temp >= tempWarning || tempWarning >= tempDanger) {
+      _error =
+          'Invalid temperature thresholds: normal < warning < danger required';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+    if (sound >= soundWarning || soundWarning >= soundDanger) {
+      _error = 'Invalid sound thresholds: normal < warning < danger required';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+    return true;
+  }
+
   void _updateNotificationServiceThresholds() {
     _notificationService.setThresholds(
-      // Normal thresholds
       gasThreshold: _gasThreshold,
       tempThreshold: _tempThreshold,
       soundThreshold: _soundThreshold,
-      // Warning thresholds
       gasWarningThreshold: _gasWarningThreshold,
       tempWarningThreshold: _tempWarningThreshold,
       soundWarningThreshold: _soundWarningThreshold,
-      // Danger thresholds
       gasDangerThreshold: _gasDangerThreshold,
       tempDangerThreshold: _tempDangerThreshold,
       soundDangerThreshold: _soundDangerThreshold,

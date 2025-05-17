@@ -14,6 +14,7 @@ class AuthProvider with ChangeNotifier {
 
   bool get isAuthenticated => _userProfile != null;
   UserProfile? get userProfile => _userProfile;
+  String? get token => _token;
 
   Future<void> login(String token, UserProfile profile) async {
     _token = token;
@@ -69,8 +70,10 @@ class AuthProvider with ChangeNotifier {
       ).timeout(const Duration(seconds: 10));
 
       if (Config.debugLoggingEnabled) {
-        debugPrint('Auth Provider: Profile fetch response status: ${response.statusCode}');
-        debugPrint('Auth Provider: Profile fetch response body: ${response.body}');
+        debugPrint(
+            'Auth Provider: Profile fetch response status: ${response.statusCode}');
+        debugPrint(
+            'Auth Provider: Profile fetch response body: ${response.body}');
       }
 
       if (response.statusCode == 200) {
@@ -82,7 +85,8 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
       } else {
         if (Config.debugLoggingEnabled) {
-          debugPrint('Auth Provider: Failed to fetch profile. Status: ${response.statusCode}');
+          debugPrint(
+              'Auth Provider: Failed to fetch profile. Status: ${response.statusCode}');
         }
       }
     } on TimeoutException catch (e, s) {
