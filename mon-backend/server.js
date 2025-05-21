@@ -51,36 +51,43 @@ app.get('/test', (req, res) => {
   });
 });
   // Initialize MQTT client
-try { 
-      console.log('Connecting to MQTT broker at:', process.env.MQTT_BROKER);
-      console.log('Using username:', process.env.MQTT_USERNAME);
-      console.log('Using port:', 1883);
-      global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
-        username: process.env.MQTT_USERNAME,
-        password: process.env.MQTT_PASSWORD,
-        port: 1883,
-      });
+try {
+  console.log('Connecting to MQTT broker at:', process.env.MQTT_BROKER);
+  console.log('Using username:', process.env.MQTT_USERNAME);
 
-      global.mqttClient.on('connect', () => {
-        console.log('Connected to MQTT broker');
-        global.mqttClient.subscribe('esp32/sensors');
-      });
+  global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
+    username: process.env.MQTT_USERNAME,
+    password: process.env.MQTT_PASSWORD,
+    // Remove port option here
+  });
 
-      global.mqttClient.on('error', (err) => {
-        console.error('MQTT connection error:', err);
-      });
+  global.mqttClient.on('connect', () => {
+    console.log('Connected to MQTT broker');
+    global.mqttClient.subscribe('esp32/sensors', (err) => {
+      if (err) console.error('Subscription error:', err);
+      else console.log('Subscribed to esp32/sensors');
+    });
+  });
 
-      global.mqttClient.on('close', () => {
-        console.log('MQTT connection closed');
-      });
+  global.mqttClient.on('error', (err) => {
+    console.error('MQTT connection error:', err);
+  });
 
-      global.mqttClient.on('offline', () => {
-        console.log('MQTT client offline');
-      });
+  global.mqttClient.on('close', () => {
+    console.log('MQTT connection closed');
+  });
 
-    } catch (error) {
-      console.error('Failed to connect to MQTT:', error);
-    }
+  global.mqttClient.on('offline', () => {
+    console.log('MQTT client offline');
+  });
+
+  global.mqttClient.on('reconnect', () => {
+    console.log('MQTT client reconnecting');
+  });
+} catch (error) {
+  console.error('Failed to connect to MQTT:', error);
+}
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@cluster0.xxxxx.mongodb.net/myDatabase", {
   useNewUrlParser: true,
