@@ -239,6 +239,18 @@ router.post('/notifications', authenticateToken, async (req, res) => {
   }
 });
 
+// Get all users (Admin only)
+router.get('/users', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    // Find all users and exclude their password field for security
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Error fetching users' });
+  }
+});
+
 // Admin - Update user role
 router.put('/users/:userId/role', authenticateToken, isAdmin, async (req, res) => {
   const { userId } = req.params;
