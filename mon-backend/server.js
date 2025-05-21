@@ -1,3 +1,8 @@
+// Load environment variables
+require('dotenv').config();
+console.log('Environment variables loaded from .env');
+
+
 // Debug information
 console.log('=== Server Startup ===');
 console.log('Starting server with Node version:', process.version);
@@ -11,9 +16,7 @@ console.log('Environment variables loaded:', {
   PORT: process.env.PORT || 3001
 });
 
-// Load environment variables
-require('dotenv').config();
-console.log('Environment variables loaded from .env');
+
 
 // Import required modules
 console.log('Importing required modules...');
