@@ -109,6 +109,19 @@ router.post('/thresholds', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
+// Get all notifications for the logged-in user
+router.get('/notifications', authenticateToken, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ user: req.user.userId })
+      .sort({ timestamp: -1 }); // Newest first
+
+    res.json(notifications);
+  } catch (err) {
+    console.error('Error fetching notifications:', err);
+    res.status(500).json({ error: 'Error fetching notifications' });
+  }
+});
+
 // Create notification
 router.post('/notifications', authenticateToken, async (req, res) => {
   const { type, status, message, value, timestamp } = req.body;
