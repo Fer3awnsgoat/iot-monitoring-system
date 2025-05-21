@@ -2,6 +2,7 @@
 enum UserRole { admin, user }
 
 class UserProfile {
+  final String? id;
   final String name;
   final String email;
   final String language;
@@ -13,6 +14,7 @@ class UserProfile {
   String? avatar; // URL or asset path
 
   UserProfile({
+    this.id,
     required this.name,
     required this.email,
     this.phoneNumber,
@@ -29,6 +31,7 @@ class UserProfile {
   // Convert UserProfile to JSON
   Map<String, dynamic> toJson() {
     return {
+      '_id': id,
       'username': name,
       'email': email,
       'language': language,
@@ -40,6 +43,7 @@ class UserProfile {
   // Create UserProfile from JSON
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
+      id: json['_id'] as String?,
       name: json['username'] ?? 'Unknown User',
       email: json['email'] ?? 'no-email@example.com',
       language: json['language'] ?? 'en',

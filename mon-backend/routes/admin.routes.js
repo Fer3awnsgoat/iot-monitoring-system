@@ -278,4 +278,56 @@ router.put('/users/:userId/role', authenticateToken, isAdmin, async (req, res) =
   }
 });
 
+// Admin - Update user email (requires admin password)
+router.put('/users/:userId/email', authenticateToken, isAdmin, async (req, res) => {
+  const { userId } = req.params;
+  const { newEmail, adminPassword } = req.body;
+
+  // Basic email format validation (can be enhanced)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(newEmail)) {
+    return res.status(400).json({ error: 'Invalid email format.' });
+  }
+
+  try {
+    // Authenticate the admin user making the request
+    const adminUser = await User.findById(req.user.userId);
+    if (!adminUser) {
+      // This should not happen if authenticateToken middleware works correctly,
+      // but as a safeguard:
+      return res.status(401).json({ error: 'Admin user not found.' });
+    }
+
+    // Verify the admin's password
+    const isPasswordValid = await adminUser.comparePassword(adminPassword); // Assuming comparePassword method on User model
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Incorrect admin password.' });
+    }
+
+    // Find the user to be updated
+    const userToUpdate = await User.findById(userId);
+    if (!userToUpdate) {
+      return res.status(404).json({ error: 'User to update not found.' });
+    }
+
+    // Check if the new email is already in use by another user
+    const existingUserWithEmail = await User.findOne({ email: newEmail });
+    if (existingUserWithEmail && existingUserWithEmail._id.toString() !== userId) {
+      return res.status(400).json({ error: 'Email already in use by another user.' });
+    }
+
+    // Update the user's email
+    userToUpdate.email = newEmail;
+    await userToUpdate.save();
+
+    // Fetch the updated user to return (without password)
+    const updatedUser = await User.findById(userId).select('-password');
+
+    res.json({ message: 'User email updated successfully.', user: updatedUser });
+  } catch (err) {
+    console.error('Error updating user email:', err);
+    res.status(500).json({ error: 'Error updating user email.' });
+  }
+});
+
 module.exports = router;

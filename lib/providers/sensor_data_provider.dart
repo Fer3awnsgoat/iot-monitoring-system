@@ -1,10 +1,6 @@
 import 'dart:async';
-import 'dart:convert'; // Import dart:convert
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http; // Import http package
 import '../models/capteur.dart' as api_model;
-import '../config.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SensorDataProvider with ChangeNotifier {
   bool _initialized = false;

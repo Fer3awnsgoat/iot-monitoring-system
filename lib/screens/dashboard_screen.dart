@@ -52,7 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       // Get auth token
-      final storage = const FlutterSecureStorage();
+      const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'auth_token');
 
       if (token == null) {
@@ -99,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (response.statusCode == 200) {
         final List<dynamic> rawData = jsonDecode(response.body);
-        debugPrint('Fetched sensor data: ' + rawData.toString());
+        debugPrint('Fetched sensor data: ${rawData.toString()}');
         _allDataCache = rawData.cast<Map<String, dynamic>>(); // Store all data
 
         // Sort data by timestamp descending (newest first)

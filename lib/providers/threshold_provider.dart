@@ -206,7 +206,7 @@ class ThresholdProvider with ChangeNotifier {
         _soundWarningThreshold = soundWarningThreshold;
         _soundDangerThreshold = soundDangerThreshold;
 
-        print('Thresholds updated successfully: $data');
+        debugPrint('Thresholds updated successfully: $data');
 
         // Update notification service
         _updateNotificationServiceThresholds();

@@ -25,4 +25,5 @@ class Config {
       '$baseUrl/admin/pending-registrations';
   static String get clearCollectionEndpoint =>
       '$baseUrl/admin/clear-collection';
+  static String get allUsersEndpoint => '$baseUrl/admin/users';
 }

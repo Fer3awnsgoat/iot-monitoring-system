@@ -30,6 +30,17 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateEmail(String newEmail) async {
+    if (_userProfile != null) {
+      _userProfile = UserProfile(
+        name: _userProfile!.name,
+        email: newEmail,
+        role: _userProfile!.role,
+      );
+      notifyListeners();
+    }
+  }
+
   Future<bool> tryAutoLogin() async {
     try {
       final token = await _storage.read(key: 'auth_token');

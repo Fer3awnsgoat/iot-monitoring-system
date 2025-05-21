@@ -1,33 +1,109 @@
 import 'package:flutter/material.dart';
 import '../notification_service.dart';
 import '../widgets/common_background.dart';
-import '../models/notification.dart' as app_notification;
-import '../providers/notification_provider.dart';
+import '../config.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 
 class NotificationsScreen extends StatefulWidget {
+  const NotificationsScreen({
+    super.key,
+  });
+
   @override
-  _NotificationsScreenState createState() => _NotificationsScreenState();
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  List<dynamic> _notifications = [];
+  bool _isLoading = true;
+  String? _error;
+  final _dateFormat = DateFormat('MMM d, y HH:mm');
+  static const int _pageSize = 20;
+  int _currentPage = 0;
+  bool _hasMore = true;
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() =>
-        Provider.of<NotificationProvider>(context, listen: false)
-            .fetchNotifications());
+    _fetchNotifications();
   }
 
-  Future<void> _refreshNotifications() async {
-    await Provider.of<NotificationProvider>(context, listen: false)
-        .fetchNotifications();
+  Future<void> _fetchNotifications({bool refresh = false}) async {
+    if (refresh) {
+      setState(() {
+        _currentPage = 0;
+        _hasMore = true;
+        _notifications = [];
+      });
+    }
+
+    if (!_hasMore) return;
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = authProvider.token;
+
+      if (token == null) {
+        setState(() {
+          _error = 'Please log in to view notifications';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(
+            '${Config.notificationsEndpoint}?page=$_currentPage&limit=$_pageSize'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> newNotifications = jsonDecode(response.body);
+        setState(() {
+          if (refresh) {
+            _notifications = newNotifications;
+          } else {
+            _notifications.addAll(newNotifications);
+          }
+          _hasMore = newNotifications.length == _pageSize;
+          _currentPage++;
+          _isLoading = false;
+          _error = null;
+        });
+      } else if (response.statusCode == 401) {
+        setState(() {
+          _error = 'Session expired. Please log in again.';
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'Failed to load notifications. Please try again.';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Network error. Please check your connection.';
+        _isLoading = false;
+      });
+    }
   }
 
-  Future<void> _deleteNotification(String id) async {
-    await Provider.of<NotificationProvider>(context, listen: false)
-        .deleteNotification(id);
+  String _formatTimestamp(String? timestamp) {
+    if (timestamp == null) return 'No timestamp';
+    try {
+      final date = DateTime.parse(timestamp);
+      return _dateFormat.format(date);
+    } catch (e) {
+      return 'Invalid timestamp';
+    }
   }
 
   @override
@@ -37,119 +113,199 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       body: CommonBackground(
         child: Column(
           children: [
-            // Header Title with Refresh Button
-            SafeArea(
+            // Header Title
+            const SafeArea(
               bottom: false,
               child: SizedBox(
                 height: kToolbarHeight,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'Notifications',
-                          style: TextStyle(
-                              color: Color(0xFFE07A5F),
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.refresh, color: Color(0xFFE07A5F)),
-                      onPressed: _refreshNotifications,
-                    ),
-                  ],
+                child: Center(
+                  child: Text(
+                    'Notifications',
+                    style: TextStyle(
+                        color: Color(0xFFE07A5F),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
             // Main content
             Expanded(
-              child: Consumer<NotificationProvider>(
-                builder: (context, notificationProvider, child) {
-                  if (notificationProvider.isLoading) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-
-                  if (notificationProvider.notifications.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.notifications_off_outlined,
-                              size: 100, color: Colors.white.withAlpha(150)),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'No Notification Here',
-                            style: TextStyle(
-                                fontSize: 22,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 32),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: EdgeInsets.all(16.0),
-                    itemCount: notificationProvider.notifications.length,
-                    itemBuilder: (context, index) {
-                      final notification =
-                          notificationProvider.notifications[index];
-                      Color statusColor;
-                      switch (notification.type) {
-                        case 'gas':
-                          statusColor = Colors.red;
-                          break;
-                        case 'temperature':
-                          statusColor = Colors.orange;
-                          break;
-                        case 'sound':
-                          statusColor = Colors.blue;
-                          break;
-                        default:
-                          statusColor = Colors.grey;
-                      }
-
-                      return Card(
-                        margin: EdgeInsets.symmetric(vertical: 8.0),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: statusColor,
-                            child: Icon(
-                              _getIconForType(notification.type),
-                              color: Colors.white,
-                            ),
-                          ),
-                          title: Text(
-                            notification.message,
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+              child: _isLoading && _notifications.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              SizedBox(height: 4.0),
+                              Icon(Icons.error_outline,
+                                  size: 100,
+                                  color: Colors.white.withAlpha(150)),
+                              const SizedBox(height: 24),
                               Text(
-                                '${notification.type.toUpperCase()} - ${DateFormat('yyyy-MM-dd HH:mm').format(notification.timestamp)}',
-                                style: TextStyle(
-                                    color: Colors.grey[600], fontSize: 12.0),
+                                _error!,
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    _fetchNotifications(refresh: true),
+                                child: const Text('Retry'),
                               ),
                             ],
                           ),
-                          trailing: IconButton(
-                            icon: Icon(Icons.delete, color: Colors.redAccent),
-                            onPressed: () =>
-                                _deleteNotification(notification.id),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+                        )
+                      : !_isLoading && _notifications.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.notifications_off_outlined,
+                                      size: 100,
+                                      color: Colors.white.withAlpha(150)),
+                                  const SizedBox(height: 24),
+                                  const Text(
+                                    'No Notification Here',
+                                    style: TextStyle(
+                                        fontSize: 22,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 32),
+                                ],
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: () =>
+                                  _fetchNotifications(refresh: true),
+                              child: ListView.builder(
+                                itemCount:
+                                    _notifications.length + (_hasMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index == _notifications.length) {
+                                    _fetchNotifications();
+                                    return const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  }
+
+                                  final notification = _notifications[index];
+                                  final uniqueKey = Key(
+                                      notification['_id'] ?? index.toString());
+
+                                  Color statusColor;
+                                  switch (notification['status']) {
+                                    case 'dangerous':
+                                      statusColor = Colors.red;
+                                      break;
+                                    case 'warning':
+                                      statusColor = Colors.orange;
+                                      break;
+                                    case 'normal':
+                                      statusColor = Colors.green;
+                                      break;
+                                    default:
+                                      statusColor = Colors.grey;
+                                  }
+
+                                  // Build custom card layout
+                                  return Dismissible(
+                                    key: uniqueKey,
+                                    direction: DismissDirection.endToStart,
+                                    background: Container(
+                                      color: Colors.red,
+                                      alignment: Alignment.centerRight,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20.0),
+                                      child: const Icon(
+                                        Icons.delete,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    onDismissed: (direction) {
+                                      setState(() {
+                                        _notifications.removeAt(index);
+                                      });
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content:
+                                                Text('Notification dismissed')),
+                                      );
+                                    },
+                                    child: Card(
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      color: Colors.blueGrey[800],
+                                      elevation: 4,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  '${notification['type'] ?? 'Unknown'} Alerts',
+                                                  style: TextStyle(
+                                                    color: statusColor,
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  _formatTimestamp(notification[
+                                                      'timestamp']),
+                                                  style: const TextStyle(
+                                                    color: Colors.white70,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              notification['message'] ??
+                                                  'No message',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            if (notification['value'] != null)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    top: 4.0),
+                                                child: Text(
+                                                  '*${notification['value']}',
+                                                  style: TextStyle(
+                                                    color: statusColor,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
             ),
           ],
         ),
@@ -157,7 +313,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  IconData _getIconForType(String type) {
+  IconData _getIconForType(String? type) {
     switch (type) {
       case 'gas':
         return Icons.gas_meter;
@@ -170,9 +326,3 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 }
-
-// You will need to create or update NotificationProvider and app_notification.Notification model
-// in your providers/ and models/ directories respectively.
-// The app_notification.Notification model should at least have 'id', 'type', 'message', and 'timestamp' fields.
-// The NotificationProvider should have fetchNotifications and deleteNotification methods
-// which interact with your backend API.

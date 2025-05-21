@@ -1,37 +1,25 @@
 // Simple model to store notification data
-class Notification {
-  final String id;
-  final String type;
-  final String message;
-  final DateTime timestamp;
-  final bool read;
+class AppNotification {
+  final String type; // 'gas', 'temperature', or 'sound'
+  final String status; // 'normal', 'warning', or 'dangerous'
+  final String message; // The notification message
+  final double value; // The sensor value that triggered the notification
+  final DateTime timestamp; // When the notification was created
 
-  Notification({
-    required this.id,
+  AppNotification({
     required this.type,
+    required this.status,
     required this.message,
-    required this.timestamp,
-    this.read = false,
-  });
-
-  factory Notification.fromJson(Map<String, dynamic> json) {
-    return Notification(
-      id: json['_id'] ?? json['id'],
-      type: json['type'],
-      message: json['message'],
-      timestamp: DateTime.parse(json['timestamp']),
-      read: json['read'] ?? false,
-    );
-  }
+    required this.value,
+    DateTime? timestamp,
+  }) : timestamp = timestamp ?? DateTime.now();
 
   // Convert to JSON for sending to backend
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'type': type,
-      'message': message,
-      'timestamp': timestamp.toIso8601String(),
-      'read': read,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'status': status,
+        'message': message,
+        'value': value,
+        'timestamp': timestamp.toIso8601String(),
+      };
 }
