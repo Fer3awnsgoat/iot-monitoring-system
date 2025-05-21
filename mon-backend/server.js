@@ -66,9 +66,7 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
     global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
     username: process.env.MQTT_USERNAME,
     password: process.env.MQTT_PASSWORD,
-    port: 8883,
-    protocol: 'mqtts',
-    rejectUnauthorized: false 
+    port: 1883,
 });
 
     global.mqttClient.on('connect', () => {
@@ -88,6 +86,9 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
   app.use('/admin', adminRoutes);
   app.use('/sensors', sensorRoutes);
 
+  app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to IoT Monitoring System API' });
+  });
   // 404 Handler
   app.use((req, res) => {
     console.log('404 - Route not found:', req.path);
