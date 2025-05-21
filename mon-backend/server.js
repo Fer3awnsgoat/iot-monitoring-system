@@ -1,3 +1,8 @@
+// Debug information
+console.log('Starting server with Node version:', process.version);
+console.log('Current working directory:', process.cwd());
+console.log('Files in directory:', require('fs').readdirSync('.'));
+
 // Load environment variables
 require('dotenv').config();
 
@@ -14,16 +19,18 @@ const adminRoutes = require('./routes/admin.routes');
 const sensorRoutes = require('./routes/sensor.routes');
 const Capteur = require('./models/Capteur');
 
-// Initialize Express app FIRST
+// Initialize Express app - make sure this is BEFORE any route definitions
 const app = express();
+console.log('Express app initialized');
 const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// Health check endpoint (now app is defined)
+// Health check endpoint
 app.get('/health', (req, res) => {
+  console.log('Health check endpoint hit');
   res.status(200).json({
     status: 'healthy',
     services: {
@@ -36,6 +43,7 @@ app.get('/health', (req, res) => {
 
 // Test endpoint
 app.get('/test', (req, res) => {
+  console.log('Test endpoint hit');
   res.json({ 
     status: 'ok',
     message: 'Server is running and accessible',
@@ -54,40 +62,47 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
   console.log("MongoDB connected successfully");
   
   // Initialize MQTT client
-  global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
-    username: process.env.MQTT_USERNAME,
-    password: process.env.MQTT_PASSWORD,
-    port: 8883
-  });
+  try {
+    global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
+      username: process.env.MQTT_USERNAME,
+      password: process.env.MQTT_PASSWORD,
+      port: 8883
+    });
 
-  global.mqttClient.on('connect', () => {
-    console.log('Connected to MQTT broker');
-    global.mqttClient.subscribe('esp32/sensors');
-  });
+    global.mqttClient.on('connect', () => {
+      console.log('Connected to MQTT broker');
+      global.mqttClient.subscribe('esp32/sensors');
+    });
 
-  global.mqttClient.on('error', (err) => {
-    console.error('MQTT connection error:', err);
-  });
+    global.mqttClient.on('error', (err) => {
+      console.error('MQTT connection error:', err);
+    });
+  } catch (error) {
+    console.error('Failed to connect to MQTT:', error);
+  }
 
-  // Routes (moved inside the connection callback)
+  // Routes
   app.use('/auth', authRoutes);
   app.use('/admin', adminRoutes);
   app.use('/sensors', sensorRoutes);
 
   // 404 Handler
   app.use((req, res) => {
+    console.log('404 - Route not found:', req.path);
     res.status(404).json({ error: 'Route not found' });
   });
 
   // Error handling middleware
   app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Server error:', err.stack);
     res.status(500).json({ error: 'Internal server error' });
   });
 
   // Start server
   const server = app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on port ${port}`);
+    console.log(`Health check endpoint available at: http://localhost:${port}/health`);
+    console.log(`Test endpoint available at: http://localhost:${port}/test`);
   });
 
   // Graceful shutdown
