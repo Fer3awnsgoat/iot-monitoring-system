@@ -26,12 +26,31 @@ transporter.verify(function(error, success) {
 });
 
 async function sendEmail({ to, subject, html }) {
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject,
-    html,
-  });
+  const maxRetries = 3;
+  let retryCount = 0;
+
+  while (retryCount < maxRetries) {
+    try {
+      const info = await transporter.sendMail({
+        from: process.env.EMAIL_FROM,
+        to,
+        subject,
+        html,
+      });
+      console.log('Email sent successfully:', info.messageId);
+      return info;
+    } catch (error) {
+      retryCount++;
+      console.error(`Failed to send email (attempt ${retryCount}/${maxRetries}):`, error);
+      
+      if (retryCount === maxRetries) {
+        throw new Error(`Failed to send email after ${maxRetries} attempts: ${error.message}`);
+      }
+      
+      // Wait before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+    }
+  }
 }
 
 module.exports = { transporter, sendEmail };

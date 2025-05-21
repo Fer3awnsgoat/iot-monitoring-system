@@ -7,7 +7,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "NODE_NO_WARNINGS=1 node server.js",
     "dev": "nodemon server.js"
   },
   "keywords": [

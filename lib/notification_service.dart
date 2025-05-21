@@ -359,7 +359,7 @@ class NotificationService {
 
       final response = await http
           .post(
-        Uri.parse('${Config.baseUrl}/notifications'),
+        Uri.parse(Config.notificationsEndpoint),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

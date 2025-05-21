@@ -121,57 +121,60 @@ try {
 
             // ONLY save and process notifications for warning or dangerous statuses
             if (status === 'warning' || status === 'dangerous') {
-              // Fetch the user associated with this sensor data (you'll need a way to map sensors to users)
-              // For this example, we'll assume a default admin user for now, or you need to implement user association logic
-              const adminUser = await User.findOne({ isAdmin: true }); // Example: find an admin user
+              try {
+                // Fetch the user associated with this sensor data
+                const adminUser = await User.findOne({ isAdmin: true });
 
-              if (adminUser) {
-                const notification = new Notification({
-                  type: type,
-                  status: status,
-                  message: `Sensor ${type} alert: value ${value}`,
-                  value: value,
-                  timestamp: new Date(),
-                  user: adminUser._id // Assign to the found admin user
-                });
+                if (adminUser) {
+                  const notification = new Notification({
+                    type: type,
+                    status: status,
+                    message: `Sensor ${type} alert: value ${value}`,
+                    value: value,
+                    timestamp: new Date(),
+                    user: adminUser._id
+                  });
 
-                await notification.save();
-                console.log('Notification saved:', notification);
+                  await notification.save();
+                  console.log('Notification saved:', {
+                    id: notification._id,
+                    type: notification.type,
+                    status: notification.status,
+                    timestamp: notification.timestamp
+                  });
 
-                // Send email if the user is subscribed and status is warning/dangerous
-                // (Assuming user model has an email field and a subscription preference if needed)
-                if (adminUser.email) { // You might add a user preference check here too
-                  // Note: The sendEmail function is in utils/email.js and should be imported.
-                  // We need the message and subject structure to match what sendEmail expects.
-                  // Let's format it similar to the frontend's POST route.
+                  if (adminUser.email) {
+                    const emailSubject = `Alert: ${type.toUpperCase()} ${status.toUpperCase()}`;
+                    const emailHtml = `
+                      <div style="padding: 20px; background-color: ${status === 'dangerous' ? '#ffebee' : '#fff3e0'};">
+                        <h2>Sensor Alert</h2>
+                        <p><strong>Type:</strong> ${type}</p>
+                        <p><strong>Status:</strong> ${status}</p>
+                        <p><strong>Value:</strong> ${value}</p>
+                        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+                        <p><strong>Notification ID:</strong> ${notification._id}</p>
+                      </div>
+                    `;
 
-                  const emailSubject = `Alert: ${type.toUpperCase()} ${status.toUpperCase()}`;
-                  const emailHtml = `
-                    <div style="padding: 20px; background-color: ${status === 'dangerous' ? '#ffebee' : '#fff3e0'};">
-                      <h2>Sensor Alert</h2>
-                      <p><strong>Type:</strong> ${type}</p>
-                      <p><strong>Status:</strong> ${status}</p>
-                      <p><strong>Value:</strong> ${value}</p>
-                      <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-                    </div>
-                  `;
-
-                  // Check if sendEmail function is available (imported at the top)
-                  if (typeof sendEmail === 'function') {
-                    await sendEmail({
-                      to: adminUser.email,
-                      subject: emailSubject,
-                      html: emailHtml
-                    });
-                    console.log(`Email sent for ${type} alert to ${adminUser.email}`);
+                    try {
+                      await sendEmail({
+                        to: adminUser.email,
+                        subject: emailSubject,
+                        html: emailHtml
+                      });
+                      console.log(`Email sent for ${type} alert to ${adminUser.email}`);
+                    } catch (emailError) {
+                      console.error('Failed to send email notification:', emailError);
+                      // Continue execution even if email fails
+                    }
                   } else {
-                    console.error('sendEmail function not available.');
+                    console.warn(`Admin user found but no email address for sending alerts.`);
                   }
                 } else {
-                  console.warn(`Admin user found but no email address for sending alerts.`);
+                  console.warn('Admin user not found. Cannot create notification or send email.');
                 }
-              } else {
-                console.warn('Admin user not found. Cannot create notification or send email.');
+              } catch (notificationError) {
+                console.error('Error creating notification:', notificationError);
               }
             }
           }
