@@ -47,25 +47,35 @@ class CustomBottomNav extends StatelessWidget {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = currentIndex == index;
     final color = isSelected ? Colors.orange : Colors.white.withAlpha(179);
+    final double iconSize = isSelected ? 24.0 : 20.0;
 
     return Expanded(
       child: GestureDetector(
         onTap: () => onTap(index),
         behavior: HitTestBehavior.translucent,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 8,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          padding: EdgeInsets.symmetric(vertical: isSelected ? 8.0 : 10.0),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: iconSize),
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 8,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                child: Text(label),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -54,7 +54,7 @@ class DashboardStatsCard extends StatelessWidget {
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 32, // Larger font for the value
+              fontSize: 27, // Larger font for the value
               fontWeight: FontWeight.bold,
             ),
             overflow: TextOverflow.ellipsis,
@@ -65,7 +65,7 @@ class DashboardStatsCard extends StatelessWidget {
             unit,
             style: const TextStyle(
               color: Colors.white70,
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
           ),
