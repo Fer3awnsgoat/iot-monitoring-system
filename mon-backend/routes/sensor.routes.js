@@ -6,7 +6,7 @@ const Threshold     = require('../models/Threshold')
 const Notification  = require('../models/Notification')
 const User          = require('../models/User')
 const { authenticateToken, isAdmin } = require('../middleware/auth')
-const sendEmail = require('../utils/email')
+const { sendEmail } = require('../utils/email');
 
 // Fetch last 100 sensor readings
 router.get('/', authenticateToken, async (req, res) => {
