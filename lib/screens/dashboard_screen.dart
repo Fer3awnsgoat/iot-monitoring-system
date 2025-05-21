@@ -7,6 +7,7 @@ import '../notification_service.dart';
 import '../widgets/common_background.dart';
 import '../widgets/dashboard_stats_card.dart';
 import '../config.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Colors for stat cards
 const Color _tempColor = Color(0xFFAA44C8);
@@ -50,7 +51,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final response = await http.get(Uri.parse('${Config.baseUrl}/capteurs'));
+      // Get auth token
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+
+      if (token == null) {
+        setState(() {
+          _errorMessage = 'Not authenticated. Please login again.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Test connection first
+      try {
+        final testResponse = await http.get(
+          Uri.parse('${Config.baseUrl}/health'),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ).timeout(const Duration(seconds: 5));
+
+        if (testResponse.statusCode != 200) {
+          throw Exception('Backend health check failed');
+        }
+        debugPrint('Backend connection test successful');
+      } catch (e) {
+        debugPrint('Backend connection test failed: $e');
+        throw Exception(
+            'Could not connect to the server. Please check your internet connection.');
+      }
+
+      final response = await http.get(
+        Uri.parse('${Config.baseUrl}/sensors'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Request timed out');
+        },
+      );
 
       if (!mounted) return;
 
@@ -75,16 +118,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (_latestSensorData != null) {
           _processSensorDataForNotifications(_latestSensorData!);
         }
+
+        debugPrint(
+            'Successfully fetched ${_allDataCache.length} sensor records');
       } else if (response.statusCode == 404) {
         _latestSensorData = null;
         _sensorHistory = [];
         _allDataCache = [];
         _errorMessage = 'No sensor data available yet.';
+        debugPrint('No sensor data available (404)');
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        _errorMessage = 'Authentication error. Please login again.';
+        debugPrint('Authentication error: ${response.statusCode}');
       } else {
         _errorMessage = 'Error fetching data: ${response.statusCode}';
         _latestSensorData = null;
         _sensorHistory = [];
         _allDataCache = [];
+        debugPrint(
+            'Error fetching data: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       debugPrint('Error fetching sensor data: $e');

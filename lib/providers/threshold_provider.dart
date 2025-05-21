@@ -72,18 +72,23 @@ class ThresholdProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Update thresholds from new structure
-        _gasThreshold = data['gas']['normal'].toDouble();
-        _gasWarningThreshold = data['gas']['warning'].toDouble();
-        _gasDangerThreshold = data['gas']['danger'].toDouble();
+        // Add null checks and default values
+        final gasData = data['gas'] ?? {};
+        final tempData = data['temperature'] ?? {};
+        final soundData = data['sound'] ?? {};
 
-        _tempThreshold = data['temperature']['normal'].toDouble();
-        _tempWarningThreshold = data['temperature']['warning'].toDouble();
-        _tempDangerThreshold = data['temperature']['danger'].toDouble();
+        // Update thresholds from new structure with null safety
+        _gasThreshold = (gasData['normal'] ?? 300.0).toDouble();
+        _gasWarningThreshold = (gasData['warning'] ?? 450.0).toDouble();
+        _gasDangerThreshold = (gasData['danger'] ?? 600.0).toDouble();
 
-        _soundThreshold = data['sound']['normal'].toDouble();
-        _soundWarningThreshold = data['sound']['warning'].toDouble();
-        _soundDangerThreshold = data['sound']['danger'].toDouble();
+        _tempThreshold = (tempData['normal'] ?? 30.0).toDouble();
+        _tempWarningThreshold = (tempData['warning'] ?? 40.0).toDouble();
+        _tempDangerThreshold = (tempData['danger'] ?? 50.0).toDouble();
+
+        _soundThreshold = (soundData['normal'] ?? 60.0).toDouble();
+        _soundWarningThreshold = (soundData['warning'] ?? 80.0).toDouble();
+        _soundDangerThreshold = (soundData['danger'] ?? 100.0).toDouble();
 
         // Validate thresholds
         _validateThresholdRelationships();
@@ -92,13 +97,33 @@ class ThresholdProvider with ChangeNotifier {
         _updateNotificationServiceThresholds();
       } else {
         _error = 'Failed to load thresholds: ${response.statusCode}';
+        // Set default values if fetch fails
+        _setDefaultThresholds();
       }
     } catch (e) {
       _error = 'Error loading thresholds: $e';
+      // Set default values if there's an error
+      _setDefaultThresholds();
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void _setDefaultThresholds() {
+    _gasThreshold = 300.0;
+    _gasWarningThreshold = 450.0;
+    _gasDangerThreshold = 600.0;
+
+    _tempThreshold = 30.0;
+    _tempWarningThreshold = 40.0;
+    _tempDangerThreshold = 50.0;
+
+    _soundThreshold = 60.0;
+    _soundWarningThreshold = 80.0;
+    _soundDangerThreshold = 100.0;
+
+    _updateNotificationServiceThresholds();
   }
 
   // Save thresholds to server
@@ -186,6 +211,8 @@ class ThresholdProvider with ChangeNotifier {
         _soundThreshold = soundThreshold;
         _soundWarningThreshold = soundWarningThreshold;
         _soundDangerThreshold = soundDangerThreshold;
+
+        print('Thresholds updated successfully: $data');
 
         // Update notification service
         _updateNotificationServiceThresholds();

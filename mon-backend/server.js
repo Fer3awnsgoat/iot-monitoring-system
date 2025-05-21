@@ -80,24 +80,38 @@ try {
 
 
     global.mqttClient.on('message', async (topic, message) => {
-  try {
-    if (topic === 'esp32/sensors') {
-      const payload = JSON.parse(message.toString());
+      try {
+        if (topic === 'esp32/sensors') {
+          console.log('Received MQTT message:', message.toString());
+          
+          const payload = JSON.parse(message.toString());
+          
+          // Validate payload
+          if (!payload.sound || !payload.mq2 || !payload.temperature) {
+            console.error('Invalid sensor payload:', payload);
+            return;
+          }
 
-      const capteurData = new Capteur({
-        sound: payload.sound,
-        mq2: payload.mq2,
-        temperature: payload.temperature,
-        timestamp: new Date()
-      });
+          const capteurData = new Capteur({
+            sound: payload.sound,
+            mq2: payload.mq2,
+            temperature: payload.temperature,
+            timestamp: new Date()
+          });
 
-      await capteurData.save();
-      console.log('Sensor data saved to MongoDB:', capteurData);
-    }
-  } catch (error) {
-    console.error('Error processing MQTT message:', error.message);
-  }
-});
+          await capteurData.save();
+          console.log('Sensor data saved to MongoDB:', {
+            sound: capteurData.sound,
+            mq2: capteurData.mq2,
+            temperature: capteurData.temperature,
+            timestamp: capteurData.timestamp
+          });
+        }
+      } catch (error) {
+        console.error('Error processing MQTT message:', error);
+        console.error('Message content:', message.toString());
+      }
+    });
 
 
     global.mqttClient.on('error', (err) => {

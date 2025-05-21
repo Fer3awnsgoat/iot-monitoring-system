@@ -10,12 +10,21 @@ const { sendEmail } = require('../utils/email');
 // Get all sensor data
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const capteurs = await Capteur.find();
+    console.log('Fetching sensor data for user:', req.user.userId);
+    
+    const capteurs = await Capteur.find()
+      .sort({ timestamp: -1 }) // Sort by timestamp descending
+      .limit(100); // Limit to last 100 records for performance
+    
     if (!capteurs.length) {
+      console.log('No sensor data found');
       return res.status(404).json({ error: 'No sensor data available' });
     }
+    
+    console.log(`Found ${capteurs.length} sensor records`);
     res.json(capteurs);
   } catch (err) {
+    console.error('Error fetching sensor data:', err);
     res.status(500).json({ error: 'Error fetching sensor data' });
   }
 });

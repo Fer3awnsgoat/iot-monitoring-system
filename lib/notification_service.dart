@@ -54,22 +54,52 @@ class NotificationService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        // Add null checks and default values
+        final gasData = data['gas'] ?? {};
+        final tempData = data['temperature'] ?? {};
+        final soundData = data['sound'] ?? {};
+
         setThresholds(
-          gasThreshold: data['gas']['normal'].toDouble(),
-          tempThreshold: data['temperature']['normal'].toDouble(),
-          soundThreshold: data['sound']['normal'].toDouble(),
-          gasWarningThreshold: data['gas']['warning'].toDouble(),
-          tempWarningThreshold: data['temperature']['warning'].toDouble(),
-          soundWarningThreshold: data['sound']['warning'].toDouble(),
-          gasDangerThreshold: data['gas']['danger'].toDouble(),
-          tempDangerThreshold: data['temperature']['danger'].toDouble(),
-          soundDangerThreshold: data['sound']['danger'].toDouble(),
+          gasThreshold: (gasData['normal'] ?? 300.0).toDouble(),
+          tempThreshold: (tempData['normal'] ?? 30.0).toDouble(),
+          soundThreshold: (soundData['normal'] ?? 60.0).toDouble(),
+          gasWarningThreshold: (gasData['warning'] ?? 450.0).toDouble(),
+          tempWarningThreshold: (tempData['warning'] ?? 40.0).toDouble(),
+          soundWarningThreshold: (soundData['warning'] ?? 80.0).toDouble(),
+          gasDangerThreshold: (gasData['danger'] ?? 600.0).toDouble(),
+          tempDangerThreshold: (tempData['danger'] ?? 50.0).toDouble(),
+          soundDangerThreshold: (soundData['danger'] ?? 100.0).toDouble(),
         );
       } else {
         debugPrint('Failed to fetch thresholds: ${response.body}');
+        // Set default values if fetch fails
+        setThresholds(
+          gasThreshold: 300.0,
+          tempThreshold: 30.0,
+          soundThreshold: 60.0,
+          gasWarningThreshold: 450.0,
+          tempWarningThreshold: 40.0,
+          soundWarningThreshold: 80.0,
+          gasDangerThreshold: 600.0,
+          tempDangerThreshold: 50.0,
+          soundDangerThreshold: 100.0,
+        );
       }
     } catch (e) {
       debugPrint('Error syncing thresholds: $e');
+      // Set default values if there's an error
+      setThresholds(
+        gasThreshold: 300.0,
+        tempThreshold: 30.0,
+        soundThreshold: 60.0,
+        gasWarningThreshold: 450.0,
+        tempWarningThreshold: 40.0,
+        soundWarningThreshold: 80.0,
+        gasDangerThreshold: 600.0,
+        tempDangerThreshold: 50.0,
+        soundDangerThreshold: 100.0,
+      );
     }
   }
 
