@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'models/notification.dart';
+import 'models/notification.dart' as app_notification;
 import 'config.dart';
 import 'dart:async';
 
@@ -26,10 +26,11 @@ class NotificationService {
   double _soundDangerThreshold = 100.0;
 
   // List to store notifications in memory
-  final List<AppNotification> _notifications = [];
+  final List<app_notification.Notification> _notifications = [];
 
   // Getter for notifications
-  List<AppNotification> get notifications => List.unmodifiable(_notifications);
+  List<app_notification.Notification> get notifications =>
+      List.unmodifiable(_notifications);
 
   // Initialize and sync thresholds from backend
   Future<void> initializeThresholds() async {
@@ -228,11 +229,13 @@ class NotificationService {
     required double value,
   }) async {
     // Create notification object
-    final notification = AppNotification(
+    final notification = app_notification.Notification(
+      id: DateTime.now()
+          .millisecondsSinceEpoch
+          .toString(), // Generate a temporary ID
       type: type,
-      status: status,
       message: message,
-      value: value,
+      timestamp: DateTime.now(),
     );
 
     // Add to in-memory list

@@ -1,43 +1,79 @@
 import 'package:flutter/material.dart';
 import '../notification_service.dart';
 import '../widgets/common_background.dart';
+import '../models/notification.dart' as app_notification;
+import '../providers/notification_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
-class NotificationsScreen extends StatelessWidget {
-  final NotificationService notificationService;
+class NotificationsScreen extends StatefulWidget {
+  @override
+  _NotificationsScreenState createState() => _NotificationsScreenState();
+}
 
-  const NotificationsScreen({
-    super.key,
-    required this.notificationService,
-  });
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() =>
+        Provider.of<NotificationProvider>(context, listen: false)
+            .fetchNotifications());
+  }
+
+  Future<void> _refreshNotifications() async {
+    await Provider.of<NotificationProvider>(context, listen: false)
+        .fetchNotifications();
+  }
+
+  Future<void> _deleteNotification(String id) async {
+    await Provider.of<NotificationProvider>(context, listen: false)
+        .deleteNotification(id);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final notifications = notificationService.notifications;
     return Scaffold(
-      extendBody: true, // Allow background to extend behind nav bar
+      extendBody: true,
       body: CommonBackground(
         child: Column(
           children: [
-            // Header Title (same as other screens)
-            const SafeArea(
+            // Header Title with Refresh Button
+            SafeArea(
               bottom: false,
               child: SizedBox(
                 height: kToolbarHeight,
-                child: Center(
-                  child: Text(
-                    'Notifications',
-                    style: TextStyle(
-                        color: Color(0xFFE07A5F),
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Notifications',
+                          style: TextStyle(
+                              color: Color(0xFFE07A5F),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.refresh, color: Color(0xFFE07A5F)),
+                      onPressed: _refreshNotifications,
+                    ),
+                  ],
                 ),
               ),
             ),
             // Main content
             Expanded(
-              child: notifications.isEmpty
-                  ? Center(
+              child: Consumer<NotificationProvider>(
+                builder: (context, notificationProvider, child) {
+                  if (notificationProvider.isLoading) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (notificationProvider.notifications.isEmpty) {
+                    return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -54,55 +90,66 @@ class NotificationsScreen extends StatelessWidget {
                           const SizedBox(height: 32),
                         ],
                       ),
-                    )
-                  : ListView.builder(
-                      itemCount: notifications.length,
-                      itemBuilder: (context, index) {
-                        final notification = notifications[index];
-                        Color statusColor;
-                        switch (notification.status) {
-                          case 'dangerous':
-                            statusColor = Colors.red;
-                            break;
-                          case 'warning':
-                            statusColor = Colors.orange;
-                            break;
-                          case 'normal':
-                            statusColor = Colors.green;
-                            break;
-                          default:
-                            statusColor = Colors.grey;
-                        }
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: statusColor,
-                              child: Icon(
-                                _getIconForType(notification.type),
-                                color: Colors.white,
-                              ),
-                            ),
-                            title: Text(
-                              notification.message,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              '${notification.type} - ${notification.timestamp.toString()}',
-                            ),
-                            trailing: Text(
-                              notification.status.toUpperCase(),
-                              style: TextStyle(
-                                color: statusColor,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: EdgeInsets.all(16.0),
+                    itemCount: notificationProvider.notifications.length,
+                    itemBuilder: (context, index) {
+                      final notification =
+                          notificationProvider.notifications[index];
+                      Color statusColor;
+                      switch (notification.type) {
+                        case 'gas':
+                          statusColor = Colors.red;
+                          break;
+                        case 'temperature':
+                          statusColor = Colors.orange;
+                          break;
+                        case 'sound':
+                          statusColor = Colors.blue;
+                          break;
+                        default:
+                          statusColor = Colors.grey;
+                      }
+
+                      return Card(
+                        margin: EdgeInsets.symmetric(vertical: 8.0),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: statusColor,
+                            child: Icon(
+                              _getIconForType(notification.type),
+                              color: Colors.white,
                             ),
                           ),
-                        );
-                      },
-                    ),
+                          title: Text(
+                            notification.message,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 4.0),
+                              Text(
+                                '${notification.type.toUpperCase()} - ${DateFormat('yyyy-MM-dd HH:mm').format(notification.timestamp)}',
+                                style: TextStyle(
+                                    color: Colors.grey[600], fontSize: 12.0),
+                              ),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete, color: Colors.redAccent),
+                            onPressed: () =>
+                                _deleteNotification(notification.id),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -123,3 +170,9 @@ class NotificationsScreen extends StatelessWidget {
     }
   }
 }
+
+// You will need to create or update NotificationProvider and app_notification.Notification model
+// in your providers/ and models/ directories respectively.
+// The app_notification.Notification model should at least have 'id', 'type', 'message', and 'timestamp' fields.
+// The NotificationProvider should have fetchNotifications and deleteNotification methods
+// which interact with your backend API.

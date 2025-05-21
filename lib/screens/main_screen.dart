@@ -5,6 +5,8 @@ import 'analytics_screen.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
 import '../widgets/custom_bottom_nav.dart';
+import '../providers/notification_provider.dart';
+import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {
   final NotificationService notificationService;
@@ -27,11 +29,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize screens, pass notificationService to NotificationsScreen
+    // Initialize screens
     _screens = [
       const DashboardScreen(),
       const AnalyticsScreen(),
-      NotificationsScreen(notificationService: widget.notificationService),
+      NotificationsScreen(), // Removed const since it's not a const constructor
       const SettingsScreen(),
     ];
   }
@@ -44,15 +46,22 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: CustomBottomNav(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => NotificationProvider(),
+        ),
+      ],
+      child: Scaffold(
+        extendBody: true,
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: CustomBottomNav(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+        ),
       ),
     );
   }
