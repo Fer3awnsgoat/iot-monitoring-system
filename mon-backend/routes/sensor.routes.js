@@ -81,7 +81,56 @@ router.post('/thresholds', authenticateToken, isAdmin, async (req, res) => {
     res.status(500).json({ error: 'Error updating thresholds' })
   }
 })
+router.get('/email-test', async (req, res) => {
+  const testConfig = {
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+    from: process.env.EMAIL_FROM
+  };
 
+  try {
+    // Test 1: Verify environment variables
+    if (!testConfig.host || !testConfig.user || !testConfig.pass) {
+      return res.status(500).json({
+        error: "SMTP configuration incomplete",
+        config: testConfig
+      });
+    }
+
+    // Test 2: Send actual email
+    await sendEmail({
+      to: testConfig.user, // Send to yourself
+      subject: "SMTP Configuration Test",
+      html: `
+        <h1>SMTP Test Successful</h1>
+        <p>Your configuration:</p>
+        <pre>${JSON.stringify(testConfig, null, 2)}</pre>
+        <p>Server time: ${new Date()}</p>
+      `
+    });
+
+    res.json({
+      success: true,
+      message: "Test email sent successfully",
+      config: {
+        ...testConfig,
+        pass: "***" // Mask password in response
+      }
+    });
+  } catch (error) {
+    console.error("Email test failed:", error);
+    res.status(500).json({
+      error: "Email test failed",
+      details: error.message,
+      config: {
+        ...testConfig,
+        pass: "***"
+      }
+    });
+  }
+});
 // List user notifications
 router.get('/notifications', authenticateToken, async (req, res) => {
   try {
