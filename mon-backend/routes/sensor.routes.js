@@ -210,6 +210,94 @@ router.post('/notifications', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Error processing notification' })
   }
 })
+router.post('/sensors/data', authenticateToken, async (req, res) => {
+  try {
+    const { temperature, mq2, sound } = req.body
+    const user = await User.findById(req.user.userId)
+    const thresholds = await Threshold.findOne().sort({ createdAt: -1 })
 
+    if (!user || !thresholds) {
+      return res.status(500).json({ error: 'Missing user or thresholds' })
+    }
+
+    const results = []
+
+    const checks = [
+      {
+        type: 'temperature',
+        value: temperature,
+        warning: thresholds.tempWarningThreshold,
+        danger: thresholds.tempDangerThreshold
+      },
+      {
+        type: 'gas',
+        value: mq2,
+        warning: thresholds.gasWarningThreshold,
+        danger: thresholds.gasDangerThreshold
+      },
+      {
+        type: 'sound',
+        value: sound,
+        warning: thresholds.soundWarningThreshold,
+        danger: thresholds.soundDangerThreshold
+      }
+    ]
+
+    for (const check of checks) {
+      let status = 'normal'
+      let msg = ''
+
+      if (check.value >= check.danger) {
+        status = 'dangerous'
+        msg = `${check.type} too high: ${check.value}`
+      } else if (check.value >= check.warning) {
+        status = 'warning'
+        msg = `${check.type} elevated: ${check.value}`
+      }
+
+      // Skip if normal
+      if (status === 'normal') continue
+
+      // Save to DB
+      const notif = new Notification({
+        type: check.type,
+        status,
+        message: msg,
+        value: check.value,
+        timestamp: new Date(),
+        user: user._id
+      })
+      await notif.save()
+
+      // Send email
+      await sendEmail({
+        to: user.email,
+        subject: `Alert: ${check.type.toUpperCase()} ${status.toUpperCase()}`,
+        html: `
+          <div style="padding:20px;background-color:${
+            status === 'dangerous' ? '#ffebee' : '#fff3e0'
+          }">
+            <h2>Sensor Alert</h2>
+            <p><strong>Type:</strong> ${check.type}</p>
+            <p><strong>Status:</strong> ${status}</p>
+            <p><strong>Value:</strong> ${check.value}</p>
+            <p><strong>Message:</strong> ${msg}</p>
+            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+        `
+      })
+
+      results.push({ type: check.type, status, message: msg })
+    }
+
+    res.json({
+      message: 'Sensor data processed',
+      alerts: results
+    })
+  } catch (err) {
+    console.error(err.stack)
+    res.status(500).json({ error: 'Error processing sensor data' })
+  }
+})
 
 module.exports = router
