@@ -213,6 +213,7 @@ router.post('/notifications', authenticateToken, async (req, res) => {
 router.post('/sensors/data', authenticateToken, async (req, res) => {
   try {
     const { temperature, mq2, sound } = req.body
+    console.log('Received sensor data:', { temperature, mq2, sound });
     const user = await User.findById(req.user.userId)
     const thresholds = await Threshold.findOne().sort({ createdAt: -1 })
 
