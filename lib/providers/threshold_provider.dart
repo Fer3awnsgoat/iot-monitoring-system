@@ -165,7 +165,7 @@ class ThresholdProvider with ChangeNotifier {
       }
 
       final response = await http
-          .put(
+          .post(
         Uri.parse(Config.thresholdsEndpoint),
         headers: {
           'Content-Type': 'application/json',
