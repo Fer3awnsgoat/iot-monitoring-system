@@ -1,7 +1,7 @@
 // Load environment variables
 require('dotenv').config();
-global.mqttClient = null
 
+// Import required modules
 const mqtt = require('mqtt');
 const express = require('express');
 const mongoose = require('mongoose');
@@ -14,33 +14,36 @@ const adminRoutes = require('./routes/admin.routes');
 const sensorRoutes = require('./routes/sensor.routes');
 const Capteur = require('./models/Capteur');
 
+// Initialize Express app FIRST
+const app = express();
+const port = process.env.PORT || 3001;
 
-// Initialize MQTT client outside the MongoDB connection
-let mqttClient;
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
 
-  // ===== ADD THIS HEALTH ENDPOINT =====
-  app.get('/health', (req, res) => {
-    res.status(200).json({
-      status: 'healthy',
-      services: {
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        mqtt: mqttClient && mqttClient.connected ? 'connected' : 'disconnected'
-      },
-      timestamp: new Date().toISOString()
-    });
+// Health check endpoint (now app is defined)
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    services: {
+      database: mongoose.connection?.readyState === 1 ? 'connected' : 'disconnected',
+      mqtt: global.mqttClient?.connected ? 'connected' : 'disconnected'
+    },
+    timestamp: new Date().toISOString()
   });
+});
 
-  // Middleware
-  app.use(cors());
-  app.use(bodyParser.json());
+// Test endpoint
+app.get('/test', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    message: 'Server is running and accessible',
+    timestamp: new Date().toISOString()
+  });
+});
 
-    // Routes
-  app.use('/auth', authRoutes);
-  app.use('/admin', adminRoutes);
-  app.use('/sensors', sensorRoutes);
-
-
-// Connect to MongoDB - REMOVED SPACE BEFORE CONNECTION STRING
+// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@cluster0.xxxxx.mongodb.net/myDatabase", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -57,28 +60,19 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
     port: 8883
   });
 
-  mqttClient.on('connect', () => {
+  global.mqttClient.on('connect', () => {
     console.log('Connected to MQTT broker');
-    mqttClient.subscribe('esp32/sensors');
+    global.mqttClient.subscribe('esp32/sensors');
   });
 
-  mqttClient.on('error', (err) => {
+  global.mqttClient.on('error', (err) => {
     console.error('MQTT connection error:', err);
   });
 
-  // Initialize Express app
-  const app = express();
-  const port = process.env.PORT || 3001;
-
-
-  // Test endpoint
-  app.get('/test', (req, res) => {
-    res.json({ 
-      status: 'ok',
-      message: 'Server is running and accessible',
-      timestamp: new Date().toISOString()
-    });
-  });
+  // Routes (moved inside the connection callback)
+  app.use('/auth', authRoutes);
+  app.use('/admin', adminRoutes);
+  app.use('/sensors', sensorRoutes);
 
   // 404 Handler
   app.use((req, res) => {
@@ -99,7 +93,7 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
   // Graceful shutdown
   const shutdown = () => {
     console.log('Shutting down gracefully...');
-    mqttClient.end();
+    global.mqttClient?.end();
     server.close(() => {
       mongoose.connection.close(false, () => {
         console.log('Server stopped');
