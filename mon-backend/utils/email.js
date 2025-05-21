@@ -25,4 +25,13 @@ transporter.verify(function(error, success) {
   }
 });
 
-module.exports = { transporter };
+async function sendEmail({ to, subject, html }) {
+  return transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    html,
+  });
+}
+
+module.exports = { transporter, sendEmail };
