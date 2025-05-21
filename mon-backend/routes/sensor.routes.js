@@ -97,19 +97,23 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 
 // Create a new notification
 router.post('/notifications', authenticateToken, async (req, res) => {
-  console.log('POST /notifications payload:', req.body)   // ← add
+  console.log('POST /notifications payload:', req.body)
 
-  const { type, status, message, value, timestamp } = req.body
+  const { type, status, message, value } = req.body
+  // use provided timestamp or now
+  const ts = req.body.timestamp
+    ? new Date(req.body.timestamp)
+    : new Date()
 
-  if (!type || !status || !message || value === undefined || !timestamp) {
-    console.log('Validation failed, missing fields')      // ← add
+  if (!type || !status || !message || value === undefined) {
+    console.log('Validation failed, missing fields')
     return res.status(400).json({
-      error: 'Missing fields: type, status, message, value, timestamp'
+      error: 'Missing fields: type, status, message, value'
     })
   }
 
   if (!['normal','warning','dangerous'].includes(status)) {
-    console.log('Validation failed, bad status:', status)  // ← add
+    console.log('Validation failed, bad status:', status)
     return res.status(400).json({
       error: 'Status must be normal, warning or dangerous'
     })
@@ -126,12 +130,12 @@ router.post('/notifications', authenticateToken, async (req, res) => {
       status,
       message,
       value,
-      timestamp: new Date(timestamp),
+      timestamp: ts,
       user: user._id
     })
     await notif.save()
 
-    if ((status === 'warning' || status === 'dangerous') && user.email) {
+    if ((status==='warning'||status==='dangerous') && user.email) {
       await sendEmail({
         to: user.email,
         subject: `Alert: ${type.toUpperCase()} ${status.toUpperCase()}`,
@@ -144,17 +148,18 @@ router.post('/notifications', authenticateToken, async (req, res) => {
             <p><strong>Status:</strong> ${status}</p>
             <p><strong>Value:</strong> ${value}</p>
             <p><strong>Message:</strong> ${message}</p>
-            <p><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</p>
+            <p><strong>Time:</strong> ${ts.toLocaleString()}</p>
           </div>
         `
       })
     }
 
     res.status(201).json({ message: 'Notification created', notification: notif })
-  }catch (err) {
-    console.error('Error processing notification:', err.stack)  // ← change
-    return res.status(500).json({ error: 'Error processing notification' })
+  } catch (err) {
+    console.error('Error processing notification:', err.stack)
+    res.status(500).json({ error: 'Error processing notification' })
   }
 })
+
 
 module.exports = router
