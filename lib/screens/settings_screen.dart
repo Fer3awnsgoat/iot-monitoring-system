@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rating_dialog/rating_dialog.dart' as rating_dialog;
-// import '../widgets/app_header.dart'; // Remove unused import
 import '../providers/auth_provider.dart';
-// import 'alert_settings_screen.dart'; // Remove unused import
 import 'alert_thresholds_screen.dart';
 import 'notification_settings_screen.dart';
 import 'account_settings_screen.dart';
 import 'registration_requests_screen.dart';
 
-// --- Helper Classes ---
 class MenuItem {
   final IconData icon;
   final String title;

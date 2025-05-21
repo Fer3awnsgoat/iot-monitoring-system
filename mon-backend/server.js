@@ -1,31 +1,57 @@
 // Load environment variables
 require('dotenv').config();
+global.mqttClient = null
 
-// Import required modules
 const mqtt = require('mqtt');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
-// Import routes
+// Import routes and models
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
 const sensorRoutes = require('./routes/sensor.routes');
-
-// Import models
 const Capteur = require('./models/Capteur');
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/iot-monitoring', {
+
+// Initialize MQTT client outside the MongoDB connection
+let mqttClient;
+
+  // ===== ADD THIS HEALTH ENDPOINT =====
+  app.get('/health', (req, res) => {
+    res.status(200).json({
+      status: 'healthy',
+      services: {
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        mqtt: mqttClient && mqttClient.connected ? 'connected' : 'disconnected'
+      },
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Middleware
+  app.use(cors());
+  app.use(bodyParser.json());
+
+    // Routes
+  app.use('/auth', authRoutes);
+  app.use('/admin', adminRoutes);
+  app.use('/sensors', sensorRoutes);
+
+
+// Connect to MongoDB - REMOVED SPACE BEFORE CONNECTION STRING
+mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@cluster0.xxxxx.mongodb.net/myDatabase", {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
 })
 .then(() => {
   console.log("MongoDB connected successfully");
   
   // Initialize MQTT client
-  const mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
+  global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
     username: process.env.MQTT_USERNAME,
     password: process.env.MQTT_PASSWORD,
     port: 8883
@@ -36,28 +62,14 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/iot-monit
     mqttClient.subscribe('esp32/sensors');
   });
 
-  mqttClient.on('message', async (topic, message) => {
-    try {
-      const data = JSON.parse(message.toString());
-      const newCapteur = new Capteur(data);
-      await newCapteur.save();
-    } catch (err) {
-      console.error('MQTT processing error:', err);
-    }
+  mqttClient.on('error', (err) => {
+    console.error('MQTT connection error:', err);
   });
 
   // Initialize Express app
   const app = express();
   const port = process.env.PORT || 3001;
 
-  // Middleware
-  app.use(cors());
-  app.use(bodyParser.json());
-
-  // Routes
-  app.use('/auth', authRoutes);
-  app.use('/admin', adminRoutes);
-  app.use('/sensors', sensorRoutes);
 
   // Test endpoint
   app.get('/test', (req, res) => {
@@ -68,28 +80,36 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/iot-monit
     });
   });
 
+  // 404 Handler
+  app.use((req, res) => {
+    res.status(404).json({ error: 'Route not found' });
+  });
+
   // Error handling middleware
   app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ error: 'Something broke!' });
+    res.status(500).json({ error: 'Internal server error' });
   });
 
   // Start server
   const server = app.listen(port, '0.0.0.0', () => {
-    console.log('Server running on port' + port);
+    console.log(`Server running on port ${port}`);
   });
 
   // Graceful shutdown
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
+  const shutdown = () => {
+    console.log('Shutting down gracefully...');
+    mqttClient.end();
     server.close(() => {
-      console.log('HTTP server closed');
       mongoose.connection.close(false, () => {
-        console.log('MongoDB connection closed');
+        console.log('Server stopped');
         process.exit(0);
       });
     });
-  });
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 })
 .catch(err => {
   console.error('MongoDB connection error:', err);
