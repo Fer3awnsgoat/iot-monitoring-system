@@ -216,7 +216,6 @@ router.post('/sensors/data', authenticateToken, async (req, res) => {
     console.log('Received sensor data:', { temperature, mq2, sound });
     const user = await User.findById(req.user.userId)
     const thresholds = await Threshold.findOne().sort({ createdAt: -1 })
-    const thresholds = await Threshold.findOne().sort({ createdAt: -1 })
 
     console.log('Checking sensors:', {
       temperature,
