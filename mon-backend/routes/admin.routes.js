@@ -6,6 +6,7 @@ const PendingUser = require('../models/PendingUser');
 const Capteur = require('../models/Capteur');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 const { sendEmail } = require('../utils/email');
+const Notification = require('../models/Notification');
 
 // Get admin dashboard data
 router.get('/dashboard', authenticateToken, isAdmin, async (req, res) => {
@@ -176,6 +177,92 @@ router.delete('/clear-collection/:collectionName', authenticateToken, isAdmin, a
     });
   } catch (err) {
     res.status(500).json({ error: 'Error clearing collection' });
+  }
+});
+
+// Get all notifications for the logged-in user
+router.get('/notifications', authenticateToken, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ user: req.user.userId })
+      .sort({ timestamp: -1 }); // Newest first
+
+    res.json(notifications);
+  } catch (err) {
+    console.error('Error fetching notifications:', err);
+    res.status(500).json({ error: 'Error fetching notifications' });
+  }
+});
+
+// Create notification
+router.post('/notifications', authenticateToken, async (req, res) => {
+  const { type, status, message, value, timestamp } = req.body;
+  
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const notification = new Notification({
+      type,
+      status,
+      message,
+      value,
+      timestamp: new Date(timestamp),
+      user: user._id
+    });
+    
+    await notification.save();
+
+    if ((status === 'dangerous' || status === 'warning') && user.email) {
+      await sendEmail({
+        to: user.email,
+        subject: `Alert: ${type.toUpperCase()} ${status.toUpperCase()}`, // Fixed template literal
+        html: `
+          <div style="padding: 20px; background-color: ${status === 'dangerous' ? '#ffebee' : '#fff3e0'};">
+            <h2>Sensor Alert</h2>
+            <p><strong>Type:</strong> ${type}</p>
+            <p><strong>Status:</strong> ${status}</p>
+            <p><strong>Value:</strong> ${value}</p>
+            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+        `
+      });
+    }
+
+    res.status(200).json({ 
+      message: 'Notification processed successfully',
+      notification
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error processing notification' });
+  }
+});
+
+// Admin - Update user role
+router.put('/users/:userId/role', authenticateToken, isAdmin, async (req, res) => {
+  const { userId } = req.params;
+  const { role } = req.body;
+
+  // Validate role
+  if (!['user', 'admin'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role specified.' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({ message: 'User role updated successfully.', user });
+  } catch (err) {
+    console.error('Error updating user role:', err);
+    res.status(500).json({ error: 'Error updating user role.' });
   }
 });
 
