@@ -64,10 +64,12 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
   // Initialize MQTT client
   try {
     global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, {
-      username: process.env.MQTT_USERNAME,
-      password: process.env.MQTT_PASSWORD,
-      port: 8883
-    });
+    username: process.env.MQTT_USERNAME,
+    password: process.env.MQTT_PASSWORD,
+    port: 8883,
+    protocol: 'mqtts',
+    rejectUnauthorized: false 
+});
 
     global.mqttClient.on('connect', () => {
       console.log('Connected to MQTT broker');
