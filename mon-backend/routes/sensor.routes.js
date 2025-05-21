@@ -216,7 +216,20 @@ router.post('/sensors/data', authenticateToken, async (req, res) => {
     console.log('Received sensor data:', { temperature, mq2, sound });
     const user = await User.findById(req.user.userId)
     const thresholds = await Threshold.findOne().sort({ createdAt: -1 })
+    const thresholds = await Threshold.findOne().sort({ createdAt: -1 })
 
+    console.log('Checking sensors:', {
+      temperature,
+      mq2,
+      sound,
+      tempWarning: thresholds.tempWarningThreshold,
+      tempDanger: thresholds.tempDangerThreshold,
+      gasWarning: thresholds.gasWarningThreshold,
+      gasDanger: thresholds.gasDangerThreshold,
+      soundWarning: thresholds.soundWarningThreshold,
+      soundDanger: thresholds.soundDangerThreshold
+    });
+    
     if (!user || !thresholds) {
       return res.status(500).json({ error: 'Missing user or thresholds' })
     }
