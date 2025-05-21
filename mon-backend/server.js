@@ -151,7 +151,7 @@ const initializeMQTT = () => {
 
 // Helper function to determine notification status based on value and thresholds
 const getNotificationStatus = (type, value, thresholds) => {
-  if (!thresholds) return 'normal';
+  if (!thresholds) return 'normal'; // Default to normal if thresholds not loaded
 
   switch (type) {
     case 'gas':
@@ -159,8 +159,8 @@ const getNotificationStatus = (type, value, thresholds) => {
       if (value >= thresholds.gasWarningThreshold) return 'warning';
       break;
     case 'temperature':
-      if (value >= thresholds.tempDangerThreshold) return 'dangerous';  // 45 > 31 → dangerous
-      if (value >= thresholds.tempWarningThreshold) return 'warning';   // 45 > 27 → but we won't get here
+      if (value >= thresholds.tempDangerThreshold) return 'dangerous';
+      if (value >= thresholds.tempWarningThreshold) return 'warning';
       break;
     case 'sound':
       if (value >= thresholds.soundDangerThreshold) return 'dangerous';
@@ -169,27 +169,6 @@ const getNotificationStatus = (type, value, thresholds) => {
   }
   return 'normal';
 };
-
-// In handleRawSensorData, modify to only send one notification per status change:
-let lastStatus = {}; // Track last status for each sensor type
-
-// Process each sensor type in the payload
-for (const sensorType in rawPayload) {
-  if (rawPayload.hasOwnProperty(sensorType)) {
-    const value = rawPayload[sensorType];
-    const type = sensorType.toLowerCase();
-    const currentStatus = getNotificationStatus(type, value, thresholds);
-
-    // Only proceed if status changed
-    if (lastStatus[type] !== currentStatus) {
-      // Save data and create notification if needed
-      if (currentStatus === 'warning' || currentStatus === 'dangerous') {
-        await createSensorAlertNotification(type, currentStatus, value, thresholds);
-      }
-      lastStatus[type] = currentStatus;
-    }
-  }
-}
 
 // Process pre-formatted notifications
 const handlePreformattedNotification = async (payload) => {
