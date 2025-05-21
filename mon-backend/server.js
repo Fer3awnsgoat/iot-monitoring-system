@@ -28,6 +28,11 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
+// Routes
+app.use('/auth', authRoutes);
+app.use('/admin', adminRoutes);
+app.use('/sensors', sensorRoutes);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   console.log('Health check endpoint hit');
@@ -73,7 +78,7 @@ try {
       });
     });
 
-    
+
     global.mqttClient.on('message', async (topic, message) => {
   try {
     if (topic === 'esp32/sensors') {
@@ -124,10 +129,7 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
 .then(() => {
   console.log("MongoDB connected successfully");
 
-  // Routes
-  app.use('/auth', authRoutes);
-  app.use('/admin', adminRoutes);
-  app.use('/sensors', sensorRoutes);
+
 
   app.get('/', (req, res) => {
   res.json({ message: 'Welcome to IoT Monitoring System API' });
