@@ -174,7 +174,7 @@ class NotificationService {
         currentGasState = 'dangerous';
       } else if (gasLevel > _gasWarningThreshold) {
         currentGasState = 'warning';
-      } else if (gasLevel > _gasThreshold) {
+      } else if (gasLevel <= _gasThreshold) {
         currentGasState = 'normal';
       }
     }
