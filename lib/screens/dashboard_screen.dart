@@ -99,6 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (response.statusCode == 200) {
         final List<dynamic> rawData = jsonDecode(response.body);
+        debugPrint('Fetched sensor data: ' + rawData.toString());
         _allDataCache = rawData.cast<Map<String, dynamic>>(); // Store all data
 
         // Sort data by timestamp descending (newest first)
@@ -156,16 +157,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Filter data based on selected hours from the cache
   void _filterAndSetHistory() {
-    final now = DateTime.now();
-    final int hours = int.parse(_selectedHours.replaceAll('H', ''));
-    final cutoff = now.subtract(Duration(hours: hours));
-
     setState(() {
-      _sensorHistory = _allDataCache.where((item) {
-        DateTime timestamp =
-            DateTime.tryParse(item['timestamp'] ?? '') ?? DateTime(0);
-        return timestamp.isAfter(cutoff);
-      }).toList();
+      _sensorHistory =
+          List.from(_allDataCache); // Show all records, no time filter
     });
   }
 

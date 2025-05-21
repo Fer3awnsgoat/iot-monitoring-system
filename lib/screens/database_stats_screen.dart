@@ -32,9 +32,11 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
 
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
-      debugPrint('DatabaseStatsScreen: Attempting to fetch stats with token: ${token?.substring(0, 10)}...');
-      debugPrint('DatabaseStatsScreen: Using URL: ${Config.databaseStatsEndpoint}');
-      
+      debugPrint(
+          'DatabaseStatsScreen: Attempting to fetch stats with token: ${token?.substring(0, 10)}...');
+      debugPrint(
+          'DatabaseStatsScreen: Using URL: ${Config.databaseStatsEndpoint}');
+
       final response = await http.get(
         Uri.parse(Config.databaseStatsEndpoint),
         headers: {
@@ -43,7 +45,8 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
         },
       );
 
-      debugPrint('DatabaseStatsScreen: Response status code: ${response.statusCode}');
+      debugPrint(
+          'DatabaseStatsScreen: Response status code: ${response.statusCode}');
       debugPrint('DatabaseStatsScreen: Response body: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -53,7 +56,8 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
         });
       } else {
         setState(() {
-          _error = 'Failed to fetch database stats (Status: ${response.statusCode})';
+          _error =
+              'Failed to fetch database stats (Status: ${response.statusCode})';
           _isLoading = false;
         });
         debugPrint('DatabaseStatsScreen: Error response: ${response.body}');
@@ -68,7 +72,7 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
     }
   }
 
-  Future<void> _clearCollection(String collectionName, double sizeMB) async {
+  Future<void> _clearCollection(String collectionName, double sizeKB) async {
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       final response = await http.delete(
@@ -77,12 +81,14 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: json.encode({'sizeMB': sizeMB}),
+        body: json.encode({'sizeKB': sizeKB}),
       );
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Successfully cleared ${sizeMB}MB from $collectionName collection')),
+          SnackBar(
+              content: Text(
+                  'Successfully cleared ${sizeKB}KB from $collectionName collection')),
         );
         _fetchDatabaseStats(); // Refresh stats
       } else {
@@ -97,17 +103,16 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
     }
   }
 
-  void _showDeleteConfirmation(String collectionName, double totalSizeMB) {
-    double selectedSize = totalSizeMB;
-    
+  void _showDeleteConfirmation(String collectionName, double totalSizeKB) {
+    double selectedSize = totalSizeKB;
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: const Color(0xFF15355E),
-          title: const Text('Clear Collection Data', 
-            style: TextStyle(color: Colors.white)
-          ),
+          title: const Text('Clear Collection Data',
+              style: TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,9 +128,9 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
                     child: Slider(
                       value: selectedSize,
                       min: 0,
-                      max: totalSizeMB,
+                      max: totalSizeKB,
                       divisions: 20,
-                      label: '${selectedSize.toStringAsFixed(2)} MB',
+                      label: '${selectedSize.toStringAsFixed(2)} KB',
                       onChanged: (value) {
                         setState(() => selectedSize = value);
                       },
@@ -136,7 +141,7 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
                   SizedBox(
                     width: 60,
                     child: Text(
-                      '${selectedSize.toStringAsFixed(2)}MB',
+                      '${selectedSize.toStringAsFixed(2)}KB',
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ),
@@ -147,18 +152,15 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', 
-                style: TextStyle(color: Colors.white70)
-              ),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white70)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _clearCollection(collectionName, selectedSize);
               },
-              child: const Text('Clear', 
-                style: TextStyle(color: Colors.red)
-              ),
+              child: const Text('Clear', style: TextStyle(color: Colors.red)),
             ),
           ],
         ),
@@ -199,7 +201,8 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
                     Positioned(
                       right: 0,
                       child: IconButton(
-                        icon: const Icon(Icons.refresh, color: Color(0xFFE07A5F)),
+                        icon:
+                            const Icon(Icons.refresh, color: Color(0xFFE07A5F)),
                         onPressed: _fetchDatabaseStats,
                       ),
                     ),
@@ -212,7 +215,9 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? Center(child: Text(_error!, style: const TextStyle(color: Colors.white)))
+                      ? Center(
+                          child: Text(_error!,
+                              style: const TextStyle(color: Colors.white)))
                       : SingleChildScrollView(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -267,18 +272,18 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${_stats?['totalSizeMB']} MB used',
+                  '${_stats?['totalSizeKB'] ?? 0} KB used',
                   style: const TextStyle(color: Colors.white70),
                 ),
                 Text(
-                  '${_stats?['usagePercentage']}%',
+                  '${_stats?['usagePercentage'] ?? 0}%',
                   style: TextStyle(color: color, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              'Storage Limit: ${_stats?['storageLimit']}',
+              'Storage Limit: ${_stats?['storageLimit'] ?? '0KB'}',
               style: const TextStyle(color: Colors.white70),
             ),
           ],
@@ -308,8 +313,9 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
   }
 
   Widget _buildCollectionCard(Map<String, dynamic> collection) {
-    final collectionSize = double.parse(collection['size'].toString());
-    
+    final collectionSize =
+        double.tryParse(collection['size']?.toString() ?? '0') ?? 0;
+
     return Card(
       color: const Color(0xFF15355E),
       margin: const EdgeInsets.only(bottom: 8),
@@ -322,20 +328,21 @@ class _DatabaseStatsScreenState extends State<DatabaseStatsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Size: ${collection['size']} MB',
+              'Size: ${(collection['size'] ?? 0)} KB',
               style: const TextStyle(color: Colors.white70),
             ),
             Text(
-              'Documents: ${collection['documents']}',
+              'Documents: ${(collection['documents'] ?? 0)}',
               style: const TextStyle(color: Colors.white70),
             ),
           ],
         ),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline, color: Colors.red),
-          onPressed: () => _showDeleteConfirmation(collection['name'], collectionSize),
+          onPressed: () =>
+              _showDeleteConfirmation(collection['name'], collectionSize),
         ),
       ),
     );
   }
-} 
+}

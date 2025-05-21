@@ -19,19 +19,14 @@ class _NotificationSettingsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notification Settings'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
       body: CommonBackground(
         child: Stack(
           // Use Stack for Back Button
           children: [
             Column(
               children: [
-                // Header Title
-                const SafeArea(
+                // Orange header text
+                SafeArea(
                   bottom: false,
                   child: SizedBox(
                     height: kToolbarHeight,

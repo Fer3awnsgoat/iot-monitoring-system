@@ -57,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           debugPrint('Test connection failed: $e');
         }
 
-        debugPrint('Attempting to connect to: ${Config.baseUrl}/register');
+        debugPrint('Attempting to connect to: ${Config.registerEndpoint}');
 
         final requestData = {
           'username': _usernameController.text,
@@ -68,7 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         final response = await http
             .post(
-          Uri.parse('${Config.baseUrl}/register'),
+          Uri.parse(Config.registerEndpoint),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
           },

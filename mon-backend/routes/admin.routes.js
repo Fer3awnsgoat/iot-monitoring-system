@@ -38,24 +38,24 @@ router.get('/database-stats', authenticateToken, isAdmin, async (req, res) => {
         // Get stats for each collection
         for (const collection of collections) {
             const stats = await mongoose.connection.db.collection(collection.name).stats();
-            const sizeMB = stats.size / (1024 * 1024); // Convert to MB
-            totalSize += sizeMB;
+            const sizeKB = stats.size / 1024; // Convert to KB
+            totalSize += sizeKB;
             
             collectionStats.push({
                 name: collection.name,
-                size: sizeMB.toFixed(2),
+                size: sizeKB.toFixed(2), // Show 2 decimals
                 documents: stats.count
             });
         }
 
-        // Calculate storage limit and usage
-        const storageLimit = "512MB"; // You can adjust this or make it dynamic
-        const usagePercentage = ((totalSize / 512) * 100).toFixed(2); // Assuming 512MB limit
+        // Calculate storage limit and usage (512MB = 524288KB)
+        const storageLimit = 524288; // KB
+        const usagePercentage = ((totalSize / storageLimit) * 100).toFixed(2);
 
         res.json({
             usagePercentage: usagePercentage,
-            totalSizeMB: totalSize.toFixed(2),
-            storageLimit: storageLimit,
+            totalSizeKB: totalSize.toFixed(2),
+            storageLimit: `${storageLimit}KB`,
             collections: collectionStats
         });
     } catch (error) {
@@ -123,6 +123,7 @@ router.post('/registration-decision/:id', authenticateToken, isAdmin, async (req
       res.status(400).json({ error: 'Invalid decision. Use "approve" or "reject"' });
     }
   } catch (err) {
+    console.error('Error in registration decision:', err);
     res.status(500).json({ error: 'Error processing registration decision' });
   }
 });
@@ -130,7 +131,7 @@ router.post('/registration-decision/:id', authenticateToken, isAdmin, async (req
 // Clear collection data
 router.delete('/clear-collection/:collectionName', authenticateToken, isAdmin, async (req, res) => {
   const { collectionName } = req.params;
-  const { sizeMB } = req.body;
+  const { sizeKB } = req.body;
   
   try {
     if (collectionName.toLowerCase() === 'users') {
@@ -143,12 +144,12 @@ router.delete('/clear-collection/:collectionName', authenticateToken, isAdmin, a
     }
 
     const stats = await collection.stats();
-    const currentSizeMB = (stats.size + stats.totalIndexSize) / (1024 * 1024);
+    const currentSizeKB = (stats.size + stats.totalIndexSize) / 1024;
 
-    if (sizeMB >= currentSizeMB) {
+    if (sizeKB >= currentSizeKB) {
       await collection.deleteMany({});
     } else {
-      const deleteRatio = sizeMB / currentSizeMB;
+      const deleteRatio = sizeKB / currentSizeKB;
       const documentsToDelete = Math.floor(stats.count * deleteRatio);
       const documentsToRemove = await collection
         .find({})
@@ -164,13 +165,11 @@ router.delete('/clear-collection/:collectionName', authenticateToken, isAdmin, a
     
     res.json({ 
       message: `Collection ${collectionName} cleared successfully`,
-      clearedSize: sizeMB,
+      clearedSize: sizeKB,
     });
   } catch (err) {
     res.status(500).json({ error: 'Error clearing collection' });
   }
 });
-
-module.exports = router;
 
 module.exports = router;

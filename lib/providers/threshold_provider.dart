@@ -172,21 +172,15 @@ class ThresholdProvider with ChangeNotifier {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'gas': {
-            'normal': gasThreshold,
-            'warning': gasWarningThreshold,
-            'danger': gasDangerThreshold,
-          },
-          'temperature': {
-            'normal': tempThreshold,
-            'warning': tempWarningThreshold,
-            'danger': tempDangerThreshold,
-          },
-          'sound': {
-            'normal': soundThreshold,
-            'warning': soundWarningThreshold,
-            'danger': soundDangerThreshold,
-          },
+          'gasThreshold': gasThreshold,
+          'tempThreshold': tempThreshold,
+          'soundThreshold': soundThreshold,
+          'gasWarningThreshold': gasWarningThreshold,
+          'tempWarningThreshold': tempWarningThreshold,
+          'soundWarningThreshold': soundWarningThreshold,
+          'gasDangerThreshold': gasDangerThreshold,
+          'tempDangerThreshold': tempDangerThreshold,
+          'soundDangerThreshold': soundDangerThreshold,
         }),
       )
           .timeout(

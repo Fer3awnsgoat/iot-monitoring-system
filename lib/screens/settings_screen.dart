@@ -6,6 +6,7 @@ import 'alert_thresholds_screen.dart';
 import 'notification_settings_screen.dart';
 import 'account_settings_screen.dart';
 import 'registration_requests_screen.dart';
+import 'database_stats_screen.dart';
 
 class MenuItem {
   final IconData icon;
@@ -145,6 +146,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           },
         ),
       );
+      adminItems.add(
+        MenuItem(
+          icon: Icons.storage_outlined,
+          title: 'Database Stats',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DatabaseStatsScreen(),
+              ),
+            );
+          },
+        ),
+      );
     }
 
     // Add logout option
@@ -260,6 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ...menuSections.map(
                             (section) => _buildSection(section),
                           ),
+                          const SizedBox(height: 48), // Add space at the bottom
                         ],
                       ),
                     );
