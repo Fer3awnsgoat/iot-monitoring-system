@@ -97,15 +97,19 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 
 // Create a new notification
 router.post('/notifications', authenticateToken, async (req, res) => {
+  console.log('POST /notifications payload:', req.body)   // ← add
+
   const { type, status, message, value, timestamp } = req.body
 
   if (!type || !status || !message || value === undefined || !timestamp) {
+    console.log('Validation failed, missing fields')      // ← add
     return res.status(400).json({
       error: 'Missing fields: type, status, message, value, timestamp'
     })
   }
 
   if (!['normal','warning','dangerous'].includes(status)) {
+    console.log('Validation failed, bad status:', status)  // ← add
     return res.status(400).json({
       error: 'Status must be normal, warning or dangerous'
     })
@@ -147,9 +151,9 @@ router.post('/notifications', authenticateToken, async (req, res) => {
     }
 
     res.status(201).json({ message: 'Notification created', notification: notif })
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Error processing notification' })
+  }catch (err) {
+    console.error('Error processing notification:', err.stack)  // ← change
+    return res.status(500).json({ error: 'Error processing notification' })
   }
 })
 
