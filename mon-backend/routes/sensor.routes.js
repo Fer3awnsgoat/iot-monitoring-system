@@ -97,7 +97,8 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 
 // Create a new notification
 router.post('/notifications', authenticateToken, async (req, res) => {
-  console.log('POST /notifications payload:', req.body)
+  console.log('→ Enter POST /sensors/notifications')
+  console.log('Payload:', req.body)
 
   const { type, status, message, value } = req.body
   // use provided timestamp or now
