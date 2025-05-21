@@ -58,8 +58,6 @@ try {
     const options = {
       username: process.env.MQTT_USERNAME,
       password: process.env.MQTT_PASSWORD,
-      // Enable TLS connection by using mqtts protocol in the URL (set in MQTT_BROKER)
-      // rejectUnauthorized: false, // uncomment if self-signed cert issues during testing
     };
 
     global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, options);
@@ -74,6 +72,28 @@ try {
         }
       });
     });
+
+    
+    global.mqttClient.on('message', async (topic, message) => {
+  try {
+    if (topic === 'esp32/sensors') {
+      const payload = JSON.parse(message.toString());
+
+      const capteurData = new Capteur({
+        sound: payload.sound,
+        mq2: payload.mq2,
+        temperature: payload.temperature,
+        timestamp: new Date()
+      });
+
+      await capteurData.save();
+      console.log('Sensor data saved to MongoDB:', capteurData);
+    }
+  } catch (error) {
+    console.error('Error processing MQTT message:', error.message);
+  }
+});
+
 
     global.mqttClient.on('error', (err) => {
       console.error('MQTT connection error:', err);
@@ -93,7 +113,7 @@ try {
   } catch (error) {
     console.error('Failed to connect to MQTT:', error);
   }
-  
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@cluster0.xxxxx.mongodb.net/myDatabase", {
   useNewUrlParser: true,
