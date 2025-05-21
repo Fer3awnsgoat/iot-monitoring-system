@@ -45,6 +45,7 @@ router.get('/thresholds', authenticateToken, async (req, res) => {
 
 // Update thresholds (admin only)
 router.post('/thresholds', authenticateToken, isAdmin, async (req, res) => {
+  console.log('POST /sensors/thresholds called by user:', req.user);
   const {
     gasThreshold,
     tempThreshold,
