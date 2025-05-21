@@ -23,7 +23,7 @@ const User = require('./models/User');
 const Threshold = require('./models/Threshold');
 const { sendEmail } = require('./utils/email');
 
-// Initialize Express app - make sure this is BEFORE any route definitions
+
 const app = express();
 console.log('Express app initialized');
 const port = process.env.PORT || 3001;
@@ -60,36 +60,36 @@ app.get('/test', (req, res) => {
   });
 });
 
-// Initialize MQTT client
+  // Initialize MQTT client
 try {
-  console.log('Connecting to MQTT broker at:', process.env.MQTT_BROKER);
-  console.log('Using username:', process.env.MQTT_USERNAME);
+    console.log('Connecting to MQTT broker at:', process.env.MQTT_BROKER);
+    console.log('Using username:', process.env.MQTT_USERNAME);
 
-  const options = {
-    username: process.env.MQTT_USERNAME,
-    password: process.env.MQTT_PASSWORD,
-  };
+    const options = {
+      username: process.env.MQTT_USERNAME,
+      password: process.env.MQTT_PASSWORD,
+    };
 
-  global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, options);
+    global.mqttClient = mqtt.connect(process.env.MQTT_BROKER, options);
 
-  global.mqttClient.on('connect', () => {
-    console.log('Connected to MQTT broker');
-    global.mqttClient.subscribe('esp32/sensors', (err) => {
-      if (err) {
-        console.error('Subscription error:', err);
-      } else {
-        console.log('Subscribed to esp32/sensors');
-      }
+    global.mqttClient.on('connect', () => {
+      console.log('Connected to MQTT broker');
+      global.mqttClient.subscribe('esp32/sensors', (err) => {
+        if (err) {
+          console.error('Subscription error:', err);
+        } else {
+          console.log('Subscribed to esp32/sensors');
+        }
+      });
     });
-  });
 
-  global.mqttClient.on('message', async (topic, message) => {
-    try {
-      if (topic === 'esp32/sensors') {
+    global.mqttClient.on('message', async (topic, message) => {
+  try {
+    if (topic === 'esp32/sensors') {
         console.log('Received MQTT message:', message.toString());
         
         const rawPayload = JSON.parse(message.toString());
-        
+
         // Fetch the latest thresholds once per message batch if processing multiple sensors
         let thresholds = await Threshold.findOne().sort({ createdAt: -1 });
         if (!thresholds) {
@@ -111,12 +111,12 @@ try {
             const status = getNotificationStatus(type, value, thresholds);
 
             // Save Capteur data for ALL sensor readings
-            const capteurData = new Capteur({
+      const capteurData = new Capteur({
               [type]: value, // Use computed type
-              timestamp: new Date()
+        timestamp: new Date()
               // You might need to add a field to link this Capteur data to a specific device/location
-            });
-            await capteurData.save();
+      });
+      await capteurData.save();
             console.log('Sensor data saved to MongoDB:', { type, value, timestamp: capteurData.timestamp });
 
             // ONLY save and process notifications for warning or dangerous statuses
@@ -176,31 +176,31 @@ try {
             }
           }
         }
-      }
-    } catch (error) {
+    }
+  } catch (error) {
       console.error('Error processing MQTT message:', error);
       console.error('Message content:', message.toString());
-    }
-  });
+  }
+});
 
-  global.mqttClient.on('error', (err) => {
-    console.error('MQTT connection error:', err);
-  });
+    global.mqttClient.on('error', (err) => {
+      console.error('MQTT connection error:', err);
+    });
 
-  global.mqttClient.on('close', () => {
-    console.log('MQTT connection closed');
-  });
+    global.mqttClient.on('close', () => {
+      console.log('MQTT connection closed');
+    });
 
-  global.mqttClient.on('offline', () => {
-    console.log('MQTT client offline');
-  });
+    global.mqttClient.on('offline', () => {
+      console.log('MQTT client offline');
+    });
 
-  global.mqttClient.on('reconnect', () => {
-    console.log('MQTT client reconnecting');
-  });
-} catch (error) {
-  console.error('Failed to connect to MQTT:', error);
-}
+    global.mqttClient.on('reconnect', () => {
+      console.log('MQTT client reconnecting');
+    });
+  } catch (error) {
+    console.error('Failed to connect to MQTT:', error);
+  }
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@cluster0.xxxxx.mongodb.net/myDatabase", {
@@ -213,7 +213,7 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
   console.log("MongoDB connected successfully");
 
   app.get('/', (req, res) => {
-    res.json({ message: 'Welcome to IoT Monitoring System API' });
+  res.json({ message: 'Welcome to IoT Monitoring System API' });
   });
   // 404 Handler
   app.use((req, res) => {

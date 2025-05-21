@@ -55,13 +55,13 @@ class CustomBottomNav extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24),
+            Icon(icon, color: color, size: 20),
             const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 10,
+                fontSize: 8,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),

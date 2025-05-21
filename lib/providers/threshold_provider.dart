@@ -54,8 +54,13 @@ class ThresholdProvider with ChangeNotifier {
       final token = await _storage.read(key: 'auth_token');
       if (token == null) {
         _error = 'Not authenticated';
+        debugPrint(
+            'ThresholdProvider: Not authenticated for loading thresholds.');
         return;
       }
+
+      debugPrint(
+          'ThresholdProvider: Attempting to fetch thresholds from ${Config.thresholdsEndpoint}');
 
       final response = await http.get(
         Uri.parse(Config.thresholdsEndpoint),
@@ -70,25 +75,31 @@ class ThresholdProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
+        debugPrint('ThresholdProvider: Successfully fetched thresholds.');
+        debugPrint('ThresholdProvider: Response body: ${response.body}');
         final data = jsonDecode(response.body);
 
-        // Add null checks and default values
-        final gasData = data['gas'] ?? {};
-        final tempData = data['temperature'] ?? {};
-        final soundData = data['sound'] ?? {};
+        // Add null checks and default values (not needed for flat structure)
+        // final gasData = data['gas'] ?? {};
+        // final tempData = data['temperature'] ?? {};
+        // final soundData = data['sound'] ?? {};
 
-        // Update thresholds from new structure with null safety
-        _gasThreshold = (gasData['normal'] ?? 300.0).toDouble();
-        _gasWarningThreshold = (gasData['warning'] ?? 450.0).toDouble();
-        _gasDangerThreshold = (gasData['danger'] ?? 600.0).toDouble();
+        // Update thresholds from flat structure with null safety
+        _gasThreshold = (data['gasThreshold'] ?? 300.0).toDouble();
+        _gasWarningThreshold =
+            (data['gasWarningThreshold'] ?? 450.0).toDouble();
+        _gasDangerThreshold = (data['gasDangerThreshold'] ?? 600.0).toDouble();
 
-        _tempThreshold = (tempData['normal'] ?? 30.0).toDouble();
-        _tempWarningThreshold = (tempData['warning'] ?? 40.0).toDouble();
-        _tempDangerThreshold = (tempData['danger'] ?? 50.0).toDouble();
+        _tempThreshold = (data['tempThreshold'] ?? 30.0).toDouble();
+        _tempWarningThreshold =
+            (data['tempWarningThreshold'] ?? 40.0).toDouble();
+        _tempDangerThreshold = (data['tempDangerThreshold'] ?? 50.0).toDouble();
 
-        _soundThreshold = (soundData['normal'] ?? 60.0).toDouble();
-        _soundWarningThreshold = (soundData['warning'] ?? 80.0).toDouble();
-        _soundDangerThreshold = (soundData['danger'] ?? 100.0).toDouble();
+        _soundThreshold = (data['soundThreshold'] ?? 60.0).toDouble();
+        _soundWarningThreshold =
+            (data['soundWarningThreshold'] ?? 80.0).toDouble();
+        _soundDangerThreshold =
+            (data['soundDangerThreshold'] ?? 100.0).toDouble();
 
         // Validate thresholds
         _validateThresholdRelationships();
@@ -96,11 +107,15 @@ class ThresholdProvider with ChangeNotifier {
         // Update notification service
         _updateNotificationServiceThresholds();
       } else {
+        debugPrint(
+            'ThresholdProvider: Failed to fetch thresholds. Status code: ${response.statusCode}');
+        debugPrint('ThresholdProvider: Response body: ${response.body}');
         _error = 'Failed to load thresholds: ${response.statusCode}';
         // Set default values if fetch fails
         _setDefaultThresholds();
       }
     } catch (e) {
+      debugPrint('ThresholdProvider: Error loading thresholds: $e');
       _error = 'Error loading thresholds: $e';
       // Set default values if there's an error
       _setDefaultThresholds();

@@ -44,27 +44,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchData() async {
-    if (!mounted) return;
+    debugPrint('Dashboard: Starting to fetch data');
+    if (!mounted) {
+      debugPrint('Dashboard: Widget not mounted, aborting fetch');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
+    debugPrint('Dashboard: Set loading state');
 
     try {
       // Get auth token
+      debugPrint('Dashboard: Getting auth token');
       const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'auth_token');
 
       if (token == null) {
+        debugPrint('Dashboard: No auth token found');
         setState(() {
           _errorMessage = 'Not authenticated. Please login again.';
           _isLoading = false;
         });
         return;
       }
+      debugPrint('Dashboard: Auth token retrieved successfully');
 
       // Test connection first
       try {
+        debugPrint('Dashboard: Testing backend connection');
         final testResponse = await http.get(
           Uri.parse('${Config.baseUrl}/health'),
           headers: {
@@ -73,15 +83,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ).timeout(const Duration(seconds: 5));
 
         if (testResponse.statusCode != 200) {
+          debugPrint(
+              'Dashboard: Backend health check failed with status ${testResponse.statusCode}');
           throw Exception('Backend health check failed');
         }
-        debugPrint('Backend connection test successful');
+        debugPrint('Dashboard: Backend connection test successful');
       } catch (e) {
-        debugPrint('Backend connection test failed: $e');
+        debugPrint('Dashboard: Backend connection test failed: $e');
         throw Exception(
             'Could not connect to the server. Please check your internet connection.');
       }
 
+      debugPrint('Dashboard: Fetching sensor data');
       final response = await http.get(
         Uri.parse('${Config.baseUrl}/sensors'),
         headers: {
@@ -91,56 +104,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
+          debugPrint('Dashboard: Sensor data fetch timed out');
           throw TimeoutException('Request timed out');
         },
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        debugPrint('Dashboard: Widget unmounted during fetch');
+        return;
+      }
 
+      debugPrint(
+          'Dashboard: Received response with status ${response.statusCode}');
       if (response.statusCode == 200) {
         final List<dynamic> rawData = jsonDecode(response.body);
-        debugPrint('Fetched sensor data: ${rawData.toString()}');
-        _allDataCache = rawData.cast<Map<String, dynamic>>(); // Store all data
+        debugPrint('Dashboard: Parsed ${rawData.length} sensor records');
+        _allDataCache = rawData.cast<Map<String, dynamic>>();
 
         // Sort data by timestamp descending (newest first)
+        debugPrint('Dashboard: Sorting sensor data');
         _allDataCache.sort((a, b) {
           DateTime timeA =
               DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime(0);
           DateTime timeB =
               DateTime.tryParse(b['timestamp'] ?? '') ?? DateTime(0);
-          return timeB.compareTo(timeA); // Descending
+          return timeB.compareTo(timeA);
         });
 
         _latestSensorData =
             _allDataCache.isNotEmpty ? _allDataCache.first : null;
-        _filterAndSetHistory(); // Apply time filter to the cached data
+        debugPrint('Dashboard: Latest sensor data: $_latestSensorData');
 
-        // Process latest sensor data for notifications if available
+        _filterAndSetHistory();
+        debugPrint('Dashboard: Applied time filter to data');
+
         if (_latestSensorData != null) {
+          debugPrint('Dashboard: Processing sensor data for notifications');
           _processSensorDataForNotifications(_latestSensorData!);
         }
 
         debugPrint(
-            'Successfully fetched ${_allDataCache.length} sensor records');
+            'Dashboard: Successfully processed ${_allDataCache.length} sensor records');
       } else if (response.statusCode == 404) {
+        debugPrint('Dashboard: No sensor data available (404)');
         _latestSensorData = null;
         _sensorHistory = [];
         _allDataCache = [];
         _errorMessage = 'No sensor data available yet.';
-        debugPrint('No sensor data available (404)');
       } else if (response.statusCode == 401 || response.statusCode == 403) {
+        debugPrint('Dashboard: Authentication error: ${response.statusCode}');
         _errorMessage = 'Authentication error. Please login again.';
-        debugPrint('Authentication error: ${response.statusCode}');
       } else {
+        debugPrint(
+            'Dashboard: Error fetching data: ${response.statusCode} - ${response.body}');
         _errorMessage = 'Error fetching data: ${response.statusCode}';
         _latestSensorData = null;
         _sensorHistory = [];
         _allDataCache = [];
-        debugPrint(
-            'Error fetching data: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      debugPrint('Error fetching sensor data: $e');
+      debugPrint('Dashboard: Error in _fetchData: $e');
       if (!mounted) return;
       _errorMessage = 'Could not connect to the server.';
       _latestSensorData = null;
@@ -148,6 +171,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _allDataCache = [];
     } finally {
       if (mounted) {
+        debugPrint('Dashboard: Finishing fetch operation');
         setState(() {
           _isLoading = false;
         });
@@ -157,14 +181,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Filter data based on selected hours from the cache
   void _filterAndSetHistory() {
+    debugPrint('Dashboard: Filtering history data');
     setState(() {
-      _sensorHistory =
-          List.from(_allDataCache); // Show all records, no time filter
+      _sensorHistory = List.from(_allDataCache);
+      debugPrint('Dashboard: Filtered ${_sensorHistory.length} records');
     });
   }
 
   // Process sensor data for notifications
   void _processSensorDataForNotifications(Map<String, dynamic> sensorData) {
+    debugPrint(
+        'Dashboard: Processing notifications for sensor data: $sensorData');
     _notificationService.processSensorData(
       gasLevel: sensorData['mq2']?.toDouble(),
       temperature: sensorData['temperature']?.toDouble(),

@@ -91,7 +91,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final generalItems = [
       MenuItem(
         icon: Icons.person_outline,
-        title: 'My Account',
+        title: authProvider.userProfile?.isAdmin ?? false
+            ? 'Accounts'
+            : 'My Account',
         onTap: () {
           Navigator.push(
             context,

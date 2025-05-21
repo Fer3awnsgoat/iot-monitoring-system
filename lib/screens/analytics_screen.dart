@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http; // Import http package
 import '../config.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 // Removed Provider import
 // Removed SensorDataProvider import
@@ -44,7 +46,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     });
 
     try {
-      final response = await http.get(Uri.parse('${Config.baseUrl}/capteurs'));
+      // Access the AuthProvider to get the token
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = authProvider.token;
+
+      if (token == null) {
+        // Handle case where token is not available (user not logged in)
+        setState(() {
+          _errorMessage = 'Authentication token not found. Please log in.';
+          _apiDataList = [];
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${Config.baseUrl}/sensors'),
+        headers: {
+          // Include the authorization header
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json', // Added Accept header for clarity
+        },
+      );
 
       if (!mounted) return;
 

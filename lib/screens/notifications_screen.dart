@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../notification_service.dart';
 import '../widgets/common_background.dart';
 import '../config.dart';
 import 'package:http/http.dart' as http;
@@ -123,7 +122,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     'Notifications',
                     style: TextStyle(
                         color: Color(0xFFE07A5F),
-                        fontSize: 20,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -263,7 +262,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                                   '${notification['type'] ?? 'Unknown'} Alerts',
                                                   style: TextStyle(
                                                     color: statusColor,
-                                                    fontSize: 18,
+                                                    fontSize: 14,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -272,7 +271,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                                       'timestamp']),
                                                   style: const TextStyle(
                                                     color: Colors.white70,
-                                                    fontSize: 12,
+                                                    fontSize: 10,
                                                   ),
                                                 ),
                                               ],
@@ -283,7 +282,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                                   'No message',
                                               style: const TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 14,
+                                                fontSize: 12,
                                               ),
                                             ),
                                             if (notification['value'] != null)

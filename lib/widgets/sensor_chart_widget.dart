@@ -80,8 +80,8 @@ class SensorChartWidget extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        color: titleColor, // Use passed title color
-                        fontSize: 18,
+                        color: titleColor,
+                        fontSize: 8,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -90,7 +90,7 @@ class SensorChartWidget extends StatelessWidget {
                       sensorName,
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 12,
+                        fontSize: 7,
                       ),
                     ),
                   ],
@@ -104,7 +104,7 @@ class SensorChartWidget extends StatelessWidget {
 
           // Chart Area
           SizedBox(
-            height: 180, // Fixed height for chart
+            height: 150,
             child: LineChart(
               LineChartData(
                 gridData: FlGridData(

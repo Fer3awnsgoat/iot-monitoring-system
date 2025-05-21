@@ -167,79 +167,183 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   void _showEditUserDialog(UserProfile user) {
-    // TODO: Implement edit user logic
-    UserRole _selectedRole = user.role;
-
+    // Initialize controllers with current user data
     final _editEmailController = TextEditingController(text: user.email);
+    final _newPasswordController = TextEditingController();
+    final _confirmPasswordController = TextEditingController();
     final _adminPasswordController = TextEditingController();
+    UserRole _selectedRole = user.role;
+    String? _passwordError = null; // Clear previous errors
     bool _isSaving = false;
+
+    debugPrint(
+        'AccountSettingsScreen: Showing edit user dialog for ${user.name}');
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Edit ${user.name}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Email field
-              TextField(
-                controller: _editEmailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Text('Role:'),
-                  const SizedBox(width: 8),
-                  DropdownButton<UserRole>(
-                    value: _selectedRole,
-                    items: UserRole.values.map((role) {
-                      return DropdownMenuItem<UserRole>(
-                        value: role,
-                        child: Text(role.toString().split('.').last),
-                      );
-                    }).toList(),
-                    onChanged: (UserRole? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _selectedRole = newValue;
-                        });
-                      }
-                    },
+          backgroundColor: Colors.white, // Set dialog background to white
+          title: Text('Edit ${user.name}',
+              style: TextStyle(color: Colors.black87)), // Adjust title color
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Email field
+                TextField(
+                  controller: _editEmailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    labelStyle:
+                        TextStyle(color: Colors.black54), // Adjust label color
+                    prefixIconColor: Colors.black54, // Adjust icon color
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: Colors.black38), // Adjust border color
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black38),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: Colors.blueAccent), // Adjust focused color
+                    ),
                   ),
-                ],
-              ),
-              // TODO: Add other editable fields as needed
-              const SizedBox(height: 16),
-              // Admin password confirmation
-              TextField(
-                controller: _adminPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'Your Password (Admin)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock_outline),
+                  keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(
+                      color: Colors.black87), // Adjust input text color
                 ),
-                obscureText: true,
-              ),
-            ],
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Text('Role:',
+                        style: TextStyle(
+                            color: Colors.black87)), // Adjust text color
+                    const SizedBox(width: 8),
+                    DropdownButton<UserRole>(
+                      value: _selectedRole,
+                      items: UserRole.values.map((role) {
+                        return DropdownMenuItem<UserRole>(
+                          value: role,
+                          child: Text(role.toString().split('.').last,
+                              style: TextStyle(
+                                  color: Colors
+                                      .black87)), // Adjust dropdown text color
+                        );
+                      }).toList(),
+                      onChanged: (UserRole? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedRole = newValue;
+                          });
+                        }
+                      },
+                      dropdownColor:
+                          Colors.white, // Adjust dropdown menu background
+                      style: TextStyle(
+                          color: Colors
+                              .black87), // Adjust selected item text color
+                    ),
+                  ],
+                ),
+                // TODO: Add other editable fields as needed
+                const SizedBox(height: 16),
+                // Password fields
+                Text('Change Password (Optional)',
+                    style: TextStyle(
+                        color: Colors.black87, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _newPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    labelStyle: TextStyle(color: Colors.black54),
+                    prefixIconColor: Colors.black54,
+                    border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black38)),
+                    enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black38)),
+                    focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.blueAccent)),
+                    errorText: _passwordError,
+                  ),
+                  obscureText: true,
+                  style: TextStyle(color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _confirmPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    labelStyle: TextStyle(color: Colors.black54),
+                    prefixIconColor: Colors.black54,
+                    border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black38)),
+                    enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black38)),
+                    focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.blueAccent)),
+                  ),
+                  obscureText: true,
+                  style: TextStyle(color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                // Admin password confirmation
+                TextField(
+                  controller: _adminPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Your Password (Admin)',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    labelStyle: TextStyle(color: Colors.black54),
+                    prefixIconColor: Colors.black54,
+                    border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black38)),
+                    enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black38)),
+                    focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.blueAccent)),
+                  ),
+                  obscureText: true,
+                  style: TextStyle(color: Colors.black87),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              onPressed: () {
+                debugPrint(
+                    'AccountSettingsScreen: Cancel button pressed in edit user dialog');
+                // Dispose controllers before closing dialog
+                // debugPrint(
+                //     'AccountSettingsScreen: Disposing _editEmailController');
+                // _editEmailController.dispose();
+                // debugPrint(
+                //     'AccountSettingsScreen: Disposing _newPasswordController');
+                // _newPasswordController.dispose();
+                // debugPrint(
+                //     'AccountSettingsScreen: Disposing _confirmPasswordController');
+                // _confirmPasswordController.dispose();
+                // debugPrint(
+                //     'AccountSettingsScreen: Disposing _adminPasswordController');
+                // _adminPasswordController.dispose();
+                debugPrint('AccountSettingsScreen: Popping edit user dialog');
+                Navigator.of(context).pop();
+              },
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.black54)),
             ),
             TextButton(
               onPressed: () async {
                 // Made async to await the http call
                 setState(() {
                   _isSaving = true; // Show loading indicator
+                  _passwordError = null; // Clear previous password error
                 });
 
                 final authProvider =
@@ -247,6 +351,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 final token = authProvider.token;
 
                 final newEmail = _editEmailController.text.trim();
+                final newPassword = _newPasswordController.text;
+                final confirmPassword = _confirmPasswordController.text;
                 final adminPassword = _adminPasswordController.text.trim();
 
                 if (newEmail.isEmpty || adminPassword.isEmpty) {
@@ -266,8 +372,22 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 // Check if role or email has changed
                 final roleChanged = _selectedRole != user.role;
                 final emailChanged = newEmail != user.email;
+                final passwordChanged =
+                    newPassword.isNotEmpty; // Check if password fields are used
 
-                if (!roleChanged && !emailChanged) {
+                // Validate password if changed
+                if (passwordChanged) {
+                  if (newPassword != confirmPassword) {
+                    setState(() {
+                      _passwordError = 'Passwords do not match.';
+                      _isSaving = false;
+                    });
+                    return;
+                  }
+                  // Add more password validation (e.g., length) if needed
+                }
+
+                if (!roleChanged && !emailChanged && !passwordChanged) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('No changes to save.')),
@@ -297,10 +417,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           SnackBar(
                               content: Text('Role updated for ${user.name}')),
                         );
-                        // Update the user in the local list
-                        _updateUserRoleInList(user.id!, _selectedRole,
-                            newEmail); // Also pass new email
-                        // Don't close dialog yet, as email might also change
+                        // Update the user in the local list - email updated later if needed
+                        _updateUserInList(user.id!, _selectedRole,
+                            user.email); // Use old email for now
+                        // Don't close dialog yet, as email/password might also change
                       } else {
                         final errorData = jsonDecode(response.body);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -354,11 +474,32 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           SnackBar(
                               content: Text('Email updated for ${user.name}')),
                         );
-                        // Update email in local list if role wasn't changed, otherwise it was updated above
+                        // Update email in local list if role wasn't changed
                         if (!roleChanged) {
-                          _updateUserRoleInList(user.id!, user.role, newEmail);
+                          _updateUserInList(user.id!, user.role, newEmail);
+                        } else {
+                          // If role also changed, update email in the item already updated for role
+                          final index =
+                              _allUsers.indexWhere((u) => u.id == user.id);
+                          if (index != -1) {
+                            setState(() {
+                              _allUsers[index] = UserProfile(
+                                id: _allUsers[index].id,
+                                name: _allUsers[index].name,
+                                email: newEmail, // Update email
+                                language: _allUsers[index].language,
+                                isDarkMode: _allUsers[index].isDarkMode,
+                                role:
+                                    _allUsers[index].role, // Keep updated role
+                                phoneNumber: _allUsers[index].phoneNumber,
+                                company: _allUsers[index].company,
+                                jobTitle: _allUsers[index].jobTitle,
+                                avatar: _allUsers[index].avatar,
+                              );
+                            });
+                          }
                         }
-                        Navigator.pop(context); // Close dialog
+                        // Don't close dialog yet, as password might also change
                       } else {
                         final errorData = jsonDecode(emailResponse.body);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -366,7 +507,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                               content: Text(
                                   'Failed to update email: ${errorData['error'] ?? emailResponse.statusCode}')),
                         );
-                        // Keep dialog open on failure
+                        setState(() {
+                          _isSaving = false;
+                        });
+                        return; // Stop if email update failed
                       }
                     }
                   } catch (e) {
@@ -376,12 +520,76 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                             content: Text(
                                 'Network error updating email: ${e.toString()}')),
                       );
-                      // Keep dialog open on failure
+                      setState(() {
+                        _isSaving = false;
+                      });
                     }
+                    return; // Stop if email update failed
                   }
-                } else if (roleChanged) {
-                  // If only role changed, close dialog after successful role update
-                  Navigator.pop(context);
+                }
+
+                // Handle password change if needed
+                if (passwordChanged) {
+                  // TODO: Implement backend endpoint for admin to change user password
+                  // This will require a new backend route like PUT /admin/users/:userId/password
+                  // and verification of the admin's password.
+                  try {
+                    final passwordResponse = await http.put(
+                      Uri.parse(
+                          '${Config.baseUrl}/admin/users/${user.id}/password'), // New endpoint
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer $token',
+                      },
+                      body: jsonEncode({
+                        'newPassword': newPassword,
+                        'adminPassword': adminPassword,
+                      }),
+                    );
+
+                    if (mounted) {
+                      if (passwordResponse.statusCode == 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content:
+                                  Text('Password updated for ${user.name}')),
+                        );
+                        // Password change doesn't affect local UserProfile object visible in list
+                        // Close dialog only after all changes are attempted/successful
+                      } else {
+                        final errorData = jsonDecode(passwordResponse.body);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  'Failed to update password: ${errorData['error'] ?? passwordResponse.statusCode}')),
+                        );
+                        setState(() {
+                          _isSaving = false;
+                        });
+                        return; // Stop if password update failed
+                      }
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                                'Network error updating password: ${e.toString()}')),
+                      );
+                      setState(() {
+                        _isSaving = false;
+                      });
+                    }
+                    return; // Stop if password update failed
+                  }
+                }
+
+                // Close dialog if at least one change was attempted and successful
+                if (roleChanged || emailChanged || passwordChanged) {
+                  if (mounted && _isSaving == false) {
+                    // Check _isSaving to ensure no pending operation
+                    Navigator.pop(context);
+                  }
                 }
 
                 setState(() {
@@ -392,9 +600,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2.0),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.0,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.blueAccent)), // Adjust color
                     )
-                  : const Text('Save'),
+                  : const Text('Save',
+                      style: TextStyle(
+                          color: Colors.blueAccent)), // Adjust button color
             ),
           ],
         ),
@@ -402,12 +615,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     ).then((_) {
       // Dispose controllers after dialog is closed
       _editEmailController.dispose();
+      _newPasswordController.dispose();
+      _confirmPasswordController.dispose();
       _adminPasswordController.dispose();
     });
   }
 
   // Helper to update user role and email in the local list
-  void _updateUserRoleInList(String userId, UserRole newRole, String newEmail) {
+  void _updateUserInList(String userId, UserRole newRole, String newEmail) {
     final index = _allUsers.indexWhere((user) => user.id == userId);
     if (index != -1) {
       setState(() {
@@ -430,9 +645,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isAdmin = authProvider.userProfile?.isAdmin ?? false;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Account'),
+        title: Text(isAdmin ? 'Accounts' : 'My Account'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
