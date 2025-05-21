@@ -51,17 +51,6 @@ app.get('/test', (req, res) => {
   });
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@cluster0.xxxxx.mongodb.net/myDatabase", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-})
-.then(() => {
-  console.log("MongoDB connected successfully");
-  
-  // Initialize MQTT client
   try {
     
     console.log('Connecting to MQTT broker at:', process.env.MQTT_BROKER);
@@ -84,6 +73,18 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@
   } catch (error) {
     console.error('Failed to connect to MQTT:', error);
   }
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://kaabachi1990:PFE0123@cluster0.xxxxx.mongodb.net/myDatabase", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
+.then(() => {
+  console.log("MongoDB connected successfully");
+  
+  // Initialize MQTT client
+
 
   // Routes
   app.use('/auth', authRoutes);
