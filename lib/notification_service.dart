@@ -47,6 +47,25 @@ class NotificationService {
   // Getter for notifications
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
 
+  // Getter for thresholds that makes sure all fields are used
+  Map<String, Map<String, double>> get currentThresholds => {
+        'gas': {
+          'normal': _gasThreshold,
+          'warning': _gasWarningThreshold,
+          'danger': _gasDangerThreshold,
+        },
+        'temperature': {
+          'normal': _tempThreshold,
+          'warning': _tempWarningThreshold,
+          'danger': _tempDangerThreshold,
+        },
+        'sound': {
+          'normal': _soundThreshold,
+          'warning': _soundWarningThreshold,
+          'danger': _soundDangerThreshold,
+        },
+      };
+
   // Initialize and sync thresholds from backend
   Future<void> initializeThresholds() async {
     try {
@@ -163,6 +182,8 @@ class NotificationService {
     double? soundLevel,
   }) async {
     debugPrint('NotificationService: Starting to process sensor data');
+    debugPrint(
+        'Current values - Gas: $gasLevel, Temp: $temperature, Sound: $soundLevel');
 
     // Create a list to store all notifications that need to be created
     List<Map<String, dynamic>> notificationsToCreate = [];
@@ -170,126 +191,92 @@ class NotificationService {
     // Determine current state for each sensor
     String? currentGasState;
     if (gasLevel != null) {
-      if (gasLevel > _gasDangerThreshold) {
+      if (gasLevel >= _gasDangerThreshold) {
         currentGasState = 'dangerous';
-      } else if (gasLevel > _gasWarningThreshold) {
+      } else if (gasLevel >= _gasWarningThreshold) {
         currentGasState = 'warning';
-      } else if (gasLevel <= _gasThreshold) {
+      } else {
         currentGasState = 'normal';
       }
+      debugPrint(
+          'Gas state: $currentGasState (Value: $gasLevel, Warning: $_gasWarningThreshold, Danger: $_gasDangerThreshold)');
     }
 
     String? currentTempState;
     if (temperature != null) {
-      if (temperature > _tempDangerThreshold) {
+      if (temperature >= _tempDangerThreshold) {
         currentTempState = 'dangerous';
-      } else if (temperature > _tempWarningThreshold) {
+      } else if (temperature >= _tempWarningThreshold) {
         currentTempState = 'warning';
-      } else if (temperature > _tempThreshold) {
+      } else {
         currentTempState = 'normal';
       }
+      debugPrint(
+          'Temperature state: $currentTempState (Value: $temperature, Warning: $_tempWarningThreshold, Danger: $_tempDangerThreshold)');
     }
 
     String? currentSoundState;
     if (soundLevel != null) {
-      if (soundLevel > _soundDangerThreshold) {
+      if (soundLevel >= _soundDangerThreshold) {
         currentSoundState = 'dangerous';
-      } else if (soundLevel > _soundWarningThreshold) {
+      } else if (soundLevel >= _soundWarningThreshold) {
         currentSoundState = 'warning';
-      } else if (soundLevel > _soundThreshold) {
+      } else {
         currentSoundState = 'normal';
       }
+      debugPrint(
+          'Sound state: $currentSoundState (Value: $soundLevel, Warning: $_soundWarningThreshold, Danger: $_soundDangerThreshold)');
     }
 
     // Process gas level against thresholds if state changed
-    if (gasLevel != null &&
-        currentGasState != null &&
-        currentGasState != _lastNotifiedGasState) {
-      if (currentGasState == 'dangerous') {
+    if (gasLevel != null && currentGasState != null) {
+      if (currentGasState != _lastNotifiedGasState) {
         notificationsToCreate.add({
           'type': 'gas',
-          'status': 'dangerous',
-          'message': 'Gas level is too high: ${gasLevel.toStringAsFixed(2)}ppm',
+          'status': currentGasState,
+          'message': currentGasState == 'dangerous'
+              ? 'Gas level is critically high: ${gasLevel.toStringAsFixed(2)}ppm'
+              : currentGasState == 'warning'
+                  ? 'Gas level is high: ${gasLevel.toStringAsFixed(2)}ppm'
+                  : 'Gas level is normal: ${gasLevel.toStringAsFixed(2)}ppm',
           'value': gasLevel,
         });
-      } else if (currentGasState == 'warning') {
-        notificationsToCreate.add({
-          'type': 'gas',
-          'status': 'warning',
-          'message': 'Gas level is high: ${gasLevel.toStringAsFixed(2)}ppm',
-          'value': gasLevel,
-        });
-      } else if (currentGasState == 'normal') {
-        notificationsToCreate.add({
-          'type': 'gas',
-          'status': 'normal',
-          'message': 'Gas level is normal: ${gasLevel.toStringAsFixed(2)}ppm',
-          'value': gasLevel,
-        });
+        _lastNotifiedGasState = currentGasState;
       }
-      _lastNotifiedGasState = currentGasState;
     }
 
     // Process temperature against thresholds if state changed
-    if (temperature != null &&
-        currentTempState != null &&
-        currentTempState != _lastNotifiedTempState) {
-      if (currentTempState == 'dangerous') {
+    if (temperature != null && currentTempState != null) {
+      if (currentTempState != _lastNotifiedTempState) {
         notificationsToCreate.add({
           'type': 'temperature',
-          'status': 'dangerous',
-          'message':
-              'Temperature is too high: ${temperature.toStringAsFixed(1)}°C',
+          'status': currentTempState,
+          'message': currentTempState == 'dangerous'
+              ? 'Temperature is critically high: ${temperature.toStringAsFixed(1)}°C'
+              : currentTempState == 'warning'
+                  ? 'Temperature is high: ${temperature.toStringAsFixed(1)}°C'
+                  : 'Temperature is normal: ${temperature.toStringAsFixed(1)}°C',
           'value': temperature,
         });
-      } else if (currentTempState == 'warning') {
-        notificationsToCreate.add({
-          'type': 'temperature',
-          'status': 'warning',
-          'message': 'Temperature is high: ${temperature.toStringAsFixed(1)}°C',
-          'value': temperature,
-        });
-      } else if (currentTempState == 'normal') {
-        notificationsToCreate.add({
-          'type': 'temperature',
-          'status': 'normal',
-          'message':
-              'Temperature is normal: ${temperature.toStringAsFixed(1)}°C',
-          'value': temperature,
-        });
+        _lastNotifiedTempState = currentTempState;
       }
-      _lastNotifiedTempState = currentTempState;
     }
 
     // Process sound level against thresholds if state changed
-    if (soundLevel != null &&
-        currentSoundState != null &&
-        currentSoundState != _lastNotifiedSoundState) {
-      if (currentSoundState == 'dangerous') {
+    if (soundLevel != null && currentSoundState != null) {
+      if (currentSoundState != _lastNotifiedSoundState) {
         notificationsToCreate.add({
           'type': 'sound',
-          'status': 'dangerous',
-          'message':
-              'Sound level is too high: ${soundLevel.toStringAsFixed(1)}dB',
+          'status': currentSoundState,
+          'message': currentSoundState == 'dangerous'
+              ? 'Sound level is critically high: ${soundLevel.toStringAsFixed(1)}dB'
+              : currentSoundState == 'warning'
+                  ? 'Sound level is high: ${soundLevel.toStringAsFixed(1)}dB'
+                  : 'Sound level is normal: ${soundLevel.toStringAsFixed(1)}dB',
           'value': soundLevel,
         });
-      } else if (currentSoundState == 'warning') {
-        notificationsToCreate.add({
-          'type': 'sound',
-          'status': 'warning',
-          'message': 'Sound level is high: ${soundLevel.toStringAsFixed(1)}dB',
-          'value': soundLevel,
-        });
-      } else if (currentSoundState == 'normal') {
-        notificationsToCreate.add({
-          'type': 'sound',
-          'status': 'normal',
-          'message':
-              'Sound level is normal: ${soundLevel.toStringAsFixed(1)}dB',
-          'value': soundLevel,
-        });
+        _lastNotifiedSoundState = currentSoundState;
       }
-      _lastNotifiedSoundState = currentSoundState;
     }
 
     // Only proceed if there are notifications to create
@@ -300,24 +287,12 @@ class NotificationService {
       // Create all notifications in a single batch
       for (var notificationData in notificationsToCreate) {
         try {
-          // Check if state is warning or dangerous before sending to backend
-          if (notificationData['status'] == 'warning' ||
-              notificationData['status'] == 'dangerous') {
-            await _createNotification(
-              type: notificationData['type'],
-              status: notificationData['status'],
-              message: notificationData['message'],
-              value: notificationData['value'],
-            );
-          } else {
-            // Add normal notifications to in-memory list without sending to backend
-            _notifications.add(AppNotification(
-              type: notificationData['type'],
-              status: notificationData['status'],
-              message: notificationData['message'],
-              value: notificationData['value'],
-            ));
-          }
+          await _createNotification(
+            type: notificationData['type'],
+            status: notificationData['status'],
+            message: notificationData['message'],
+            value: notificationData['value'],
+          );
         } catch (e) {
           debugPrint('NotificationService: Error creating notification: $e');
           // Continue with other notifications even if one fails
@@ -328,7 +303,7 @@ class NotificationService {
     }
   }
 
-  // Private method to create and store notifications (only for warning/dangerous)
+  // Private method to create and store notifications
   Future<void> _createNotification({
     required String type,
     required String status,
@@ -349,7 +324,7 @@ class NotificationService {
     // Add to in-memory list
     _notifications.add(notification);
 
-    // Send to backend for email notification (only for warning/dangerous is handled in processSensorData)
+    // Send to backend for email notification
     try {
       final token = await _storage.read(key: 'auth_token');
       if (token == null) {
@@ -369,6 +344,7 @@ class NotificationService {
           'status': status,
           'message': message,
           'value': value,
+          'timestamp': DateTime.now().toIso8601String(),
         }),
       )
           .timeout(
@@ -378,9 +354,9 @@ class NotificationService {
         },
       );
 
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 && response.statusCode != 201) {
         debugPrint(
-            'NotificationService: Failed to send notification: ${response.statusCode}');
+            'NotificationService: Failed to send notification: ${response.statusCode} - ${response.body}');
       } else {
         debugPrint('NotificationService: Notification sent successfully');
       }

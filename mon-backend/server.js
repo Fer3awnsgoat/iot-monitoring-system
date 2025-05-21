@@ -347,8 +347,6 @@ mongoose.connect(process.env.MONGODB_URI, {
   const server = app.listen(port, '0.0.0.0', () => {
     console.log('=== Server Started ===');
     console.log(`Server running on port ${port}`);
-    console.log(`Health check endpoint available at: http://localhost:${port}/health`);
-    console.log(`Test endpoint available at: http://localhost:${port}/test`);
   });
 
   // Graceful shutdown

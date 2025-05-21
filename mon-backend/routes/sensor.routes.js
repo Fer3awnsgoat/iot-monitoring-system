@@ -146,33 +146,31 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 
 // Create a new notification
 router.post('/notifications', authenticateToken, async (req, res) => {
-  console.log('→ Enter POST /sensors/notifications')
-  console.log('Payload:', req.body)
+  console.log('→ Enter POST /sensors/notifications');
+  console.log('Payload:', req.body);
 
-  const { type, status, message, value } = req.body
+  const { type, status, message, value, timestamp } = req.body;
   // use provided timestamp or now
-  const ts = req.body.timestamp
-    ? new Date(req.body.timestamp)
-    : new Date()
+  const ts = timestamp ? new Date(timestamp) : new Date();
 
   if (!type || !status || !message || value === undefined) {
-    console.log('Validation failed, missing fields')
+    console.log('Validation failed, missing fields');
     return res.status(400).json({
       error: 'Missing fields: type, status, message, value'
-    })
+    });
   }
 
-  if (!['normal','warning','dangerous'].includes(status)) {
-    console.log('Validation failed, bad status:', status)
+  if (!['normal', 'warning', 'dangerous'].includes(status)) {
+    console.log('Validation failed, bad status:', status);
     return res.status(400).json({
       error: 'Status must be normal, warning or dangerous'
-    })
+    });
   }
 
   try {
-    const user = await User.findById(req.user.userId)
+    const user = await User.findById(req.user.userId);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' })
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const notif = new Notification({
@@ -182,34 +180,44 @@ router.post('/notifications', authenticateToken, async (req, res) => {
       value,
       timestamp: ts,
       user: user._id
-    })
-    await notif.save()
+    });
+    await notif.save();
 
-    if ((status==='warning'||status==='dangerous') && user.email) {
-      await sendEmail({
-        to: user.email,
-        subject: `Alert: ${type.toUpperCase()} ${status.toUpperCase()}`,
-        html: `
-          <div style="padding:20px;background-color:${
-            status==='dangerous'? '#ffebee':'#fff3e0'
-          }">
-            <h2>Sensor Alert</h2>
-            <p><strong>Type:</strong> ${type}</p>
-            <p><strong>Status:</strong> ${status}</p>
-            <p><strong>Value:</strong> ${value}</p>
-            <p><strong>Message:</strong> ${message}</p>
-            <p><strong>Time:</strong> ${ts.toLocaleString()}</p>
-          </div>
-        `
-      })
+    // Send email for warning and dangerous states
+    if ((status === 'warning' || status === 'dangerous') && user.email) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: `Alert: ${type.toUpperCase()} ${status.toUpperCase()}`,
+          html: `
+            <div style="padding:20px;background-color:${
+              status === 'dangerous' ? '#ffebee' : '#fff3e0'
+            }">
+              <h2>Sensor Alert</h2>
+              <p><strong>Type:</strong> ${type}</p>
+              <p><strong>Status:</strong> ${status}</p>
+              <p><strong>Value:</strong> ${value}${type === 'temperature' ? '°C' : type === 'gas' ? 'ppm' : 'dB'}</p>
+              <p><strong>Message:</strong> ${message}</p>
+              <p><strong>Time:</strong> ${ts.toLocaleString()}</p>
+            </div>
+          `
+        });
+        console.log(`Email sent for ${type} alert to ${user.email}`);
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+        // Don't fail the request if email fails
+      }
     }
 
-    res.status(201).json({ message: 'Notification created', notification: notif })
+    res.status(201).json({ 
+      message: 'Notification created successfully',
+      notification: notif 
+    });
   } catch (err) {
-    console.error('Error processing notification:', err.stack)
-    res.status(500).json({ error: 'Error processing notification' })
+    console.error('Error processing notification:', err.stack);
+    res.status(500).json({ error: 'Error processing notification' });
   }
-})
+});
 router.post('/sensors/data', authenticateToken, async (req, res) => {
   try {
     const { temperature, mq2, sound } = req.body
