@@ -81,10 +81,12 @@ router.get('/pending-registrations', authenticateToken, isAdmin, async (req, res
 router.post('/registration-decision/:id', authenticateToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   const { decision } = req.body;
-  
+  console.log('Registration decision called for id:', id, 'decision:', decision);
+
   try {
     const pendingUser = await PendingUser.findById(id);
     if (!pendingUser) {
+      console.log('Pending user not found for id:', id);
       return res.status(404).json({ error: 'Pending registration not found' });
     }
 
@@ -101,17 +103,22 @@ router.post('/registration-decision/:id', authenticateToken, isAdmin, async (req
       await pendingUser.save();
 
       if (pendingUser.email) {
-        await sendEmail({
-          to: pendingUser.email,
-          subject: 'Welcome to IoT Monitoring System',
-          html: `
-            <div style="padding: 20px; background-color: #e8f5e9;">
+        console.log('Attempting to send welcome email to:', pendingUser.email);
+        try {
+          await sendEmail({
+            to: pendingUser.email,
+            subject: 'Welcome to IoT Monitoring System',
+            html: `<div style="padding: 20px; background-color: #e8f5e9;">
               <h2>Welcome ${pendingUser.username}!</h2>
               <p>Your registration has been approved. You can now log in to the IoT Monitoring System.</p>
               <p>You will receive email notifications at this address for important system alerts.</p>
-            </div>
-          `
-        });
+            </div>`
+          });
+          console.log('Welcome email sent to:', pendingUser.email);
+        } catch (emailErr) {
+          console.error('Failed to send welcome email:', emailErr);
+          // Do not throw, just log
+        }
       }
       
       res.json({ message: 'Registration approved successfully' });
