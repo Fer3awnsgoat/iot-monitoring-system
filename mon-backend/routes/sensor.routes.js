@@ -239,7 +239,13 @@ const capteurData = new Capteur({
   timestamp: new Date()
 });
 
-await capteurData.save();
+try {
+  await capteurData.save();
+  console.log('Sensor data saved');
+} catch (err) {
+  console.error('Error saving capteur data:', err);
+  return res.status(500).json({ error: 'Failed to save sensor data' });
+}
 
     // Process notifications
     const results = [];
