@@ -231,14 +231,15 @@ router.post('/data', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Missing user or thresholds' });
     }
 
-    // Save to Capteur collection
-    const capteurData = new Capteur({
-      temperature,
-      mq2,
-      sound,
-      timestamp: new Date()
-    });
-    await capteurData.save();
+// Parse and validate sensor data before saving
+const capteurData = new Capteur({
+  temperature: Number(temperature),
+  mq2: Number(mq2),
+  sound: Number(sound),
+  timestamp: new Date()
+});
+
+await capteurData.save();
 
     // Process notifications
     const results = [];
