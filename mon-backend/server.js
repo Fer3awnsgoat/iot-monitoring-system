@@ -224,45 +224,22 @@ const handlePreformattedNotification = async (payload) => {
 };
 
 // Process raw sensor data
-const handleRawSensorData = async (rawPayload) => {
+const handleRawSensorData = async (payload) => {
   try {
-    let thresholds = await Threshold.findOne().sort({ createdAt: -1 });
-    if (!thresholds) {
-      console.warn('Thresholds not found when processing MQTT message, using default normal status.');
-      thresholds = {
-        gasThreshold: 0, tempThreshold: 0, soundThreshold: 0,
-        gasWarningThreshold: 100, tempWarningThreshold: 30, soundWarningThreshold: 80,
-        gasDangerThreshold: 200, tempDangerThreshold: 40, soundDangerThreshold: 100
-      };
-    }
+    const capteurData = new Capteur({
+      temperature: payload.temperature,
+      mq2: payload.mq2,
+      sound: payload.sound,
+      timestamp: new Date()
+    });
 
-    // Process each sensor type in the payload
-    for (const sensorType in rawPayload) {
-      if (rawPayload.hasOwnProperty(sensorType)) {
-        const value = rawPayload[sensorType];
-        const type = sensorType.toLowerCase();
-
-        // Determine status based on thresholds
-        const status = getNotificationStatus(type, value, thresholds);
-
-        // Save Capteur data
-        const capteurData = new Capteur({
-          [type]: value,
-          timestamp: new Date()
-        });
-        await capteurData.save();
-        console.log('Sensor data saved to MongoDB:', { type, value, timestamp: capteurData.timestamp });
-
-        // Process notifications for warning or dangerous statuses
-        if (status === 'warning' || status === 'dangerous') {
-          await createSensorAlertNotification(type, status, value, thresholds);
-        }
-      }
-    }
+    await capteurData.save();
+    console.log('Sensor data saved successfully');
   } catch (error) {
     console.error('Error handling raw sensor data:', error);
   }
 };
+
 
 // Create sensor alert notification
 const createSensorAlertNotification = async (type, status, value, thresholds) => {
