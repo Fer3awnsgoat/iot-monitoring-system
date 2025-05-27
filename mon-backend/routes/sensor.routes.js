@@ -166,7 +166,39 @@
         error: 'Status must be normal, warning or danger'
       });
     }
-
+    try {
+  const thresholds = await Threshold.findOne().sort({ createdAt: -1 });
+  if (thresholds) {
+    // Recalculate status based on actual thresholds
+    let actualStatus = 'normal';
+    
+    if (type === 'temperature') {
+      if (value >= thresholds.tempDangerThreshold) {
+        actualStatus = 'danger';
+      } else if (value >= thresholds.tempWarningThreshold) {
+        actualStatus = 'warning';
+      }
+    } else if (type === 'gas') {
+      if (value >= thresholds.gasDangerThreshold) {
+        actualStatus = 'danger';
+      } else if (value >= thresholds.gasWarningThreshold) {
+        actualStatus = 'warning';
+      }
+    } else if (type === 'sound') {
+      if (value >= thresholds.soundDangerThreshold) {
+        actualStatus = 'danger';
+      } else if (value >= thresholds.soundWarningThreshold) {
+        actualStatus = 'warning';
+      }
+    }
+    
+    // Override the provided status with the calculated one
+    status = actualStatus;
+    console.log(`Threshold check: ${type} ${value} -> status: ${actualStatus}`);
+  }
+} catch (thresholdError) {
+  console.error('Error checking thresholds:', thresholdError);
+}
     try {
       const user = await User.findById(req.user.userId);
       if (!user) {
