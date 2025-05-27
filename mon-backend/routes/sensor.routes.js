@@ -159,13 +159,6 @@
         error: 'Missing fields: type, status, message, value'
       });
     }
-
-    if (!['normal', 'warning', 'danger'].includes(status)) {
-      console.log('Validation failed, bad status:', status);
-      return res.status(400).json({
-        error: 'Status must be normal, warning or danger'
-      });
-    }
     try {
   const thresholds = await Threshold.findOne().sort({ createdAt: -1 });
   if (thresholds) {
