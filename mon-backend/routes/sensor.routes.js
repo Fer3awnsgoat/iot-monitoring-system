@@ -233,10 +233,14 @@
 
       // Check last notification for this user and type
       const lastNotif = await Notification.findOne({ user: user._id, type }).sort({ timestamp: -1 });
-      if (lastNotif && lastNotif.status === status) {
-        // Don't send duplicate notification
-        return res.status(200).json({ message: 'No new notification (status unchanged)', notification: lastNotif });
-      }
+     if (lastNotif && lastNotif.status === status) {
+  // Update the message and value to reflect the latest reading
+  lastNotif.message = message;
+  lastNotif.value = value;
+  lastNotif.timestamp = ts;
+  await lastNotif.save();
+  return res.status(200).json({ message: 'Notification updated (status unchanged)', notification: lastNotif });
+}
 
       const notif = new Notification({
         type,
