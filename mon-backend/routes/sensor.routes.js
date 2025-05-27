@@ -55,7 +55,7 @@
       return res.status(400).json({ error: 'All threshold fields must be numbers' })
     }
 
-    // ensure normal < warning < dangerous for each
+    // ensure normal < warning < danger for each
     if (
       body.gasThreshold    >= body.gasWarningThreshold    ||
       body.gasWarningThreshold >= body.gasDangerThreshold  ||
@@ -65,7 +65,7 @@
       body.soundWarningThreshold >= body.soundDangerThreshold
     ) {
       return res.status(400).json({
-        error: 'Each sensor must follow: normal < warning < dangerous'
+        error: 'Each sensor must follow: normal < warning < danger'
       })
     }
 
@@ -160,10 +160,10 @@
       });
     }
 
-    if (!['normal', 'warning', 'dangerous'].includes(status)) {
+    if (!['normal', 'warning', 'danger'].includes(status)) {
       console.log('Validation failed, bad status:', status);
       return res.status(400).json({
-        error: 'Status must be normal, warning or dangerous'
+        error: 'Status must be normal, warning or danger'
       });
     }
 
@@ -183,15 +183,15 @@
       });
       await notif.save();
 
-      // Send email for warning and dangerous states
-      if ((status === 'warning' || status === 'dangerous') && user.email) {
+      // Send email for warning and danger states
+      if ((status === 'warning' || status === 'danger') && user.email) {
         try {
           await sendEmail({
             to: user.email,
             subject: `Alert: ${type.toUpperCase()} ${status.toUpperCase()}`,
             html: `
               <div style="padding:20px;background-color:${
-                status === 'dangerous' ? '#ffebee' : '#fff3e0'
+                status === 'danger' ? '#ffebee' : '#fff3e0'
               }">
                 <h2>Sensor Alert</h2>
                 <p><strong>Type:</strong> ${type}</p>
@@ -275,7 +275,7 @@
         let msg = '';
 
         if (check.value >= check.danger) {
-          status = 'dangerous';
+          status = 'danger';
           msg = `${check.type} too high: ${check.value}`;
         } else if (check.value >= check.warning) {
           status = 'warning';
@@ -299,7 +299,7 @@
               subject: `Alert: ${check.type.toUpperCase()} ${status.toUpperCase()}`,
               html: `
                 <div style="padding:20px;background-color:${
-                  status === 'dangerous' ? '#ffebee' : '#fff3e0'
+                  status === 'danger' ? '#ffebee' : '#fff3e0'
                 }">
                   <h2>Sensor Alert</h2>
                   <p><strong>Type:</strong> ${check.type}</p>
@@ -386,7 +386,7 @@ router.post('/test-data', authenticateToken, async (req, res) => {
       let msg = '';
 
       if (check.value >= check.danger) {
-        status = 'dangerous';
+        status = 'danger';
         msg = `${check.type} too high: ${check.value}`;
       } else if (check.value >= check.warning) {
         status = 'warning';
@@ -410,7 +410,7 @@ router.post('/test-data', authenticateToken, async (req, res) => {
             subject: `Alert: ${check.type.toUpperCase()} ${status.toUpperCase()}`,
             html: `
               <div style="padding:20px;background-color:${
-                status === 'dangerous' ? '#ffebee' : '#fff3e0'
+                status === 'danger' ? '#ffebee' : '#fff3e0'
               }">
                 <h2>Sensor Alert</h2>
                 <p><strong>Type:</strong> ${check.type}</p>
