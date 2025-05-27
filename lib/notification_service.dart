@@ -192,7 +192,7 @@ class NotificationService {
     String? currentGasState;
     if (gasLevel != null) {
       if (gasLevel >= _gasDangerThreshold) {
-        currentGasState = 'dangerous';
+        currentGasState = 'danger';
       } else if (gasLevel >= _gasWarningThreshold) {
         currentGasState = 'warning';
       } else {
@@ -205,7 +205,7 @@ class NotificationService {
     String? currentTempState;
     if (temperature != null) {
       if (temperature >= _tempDangerThreshold) {
-        currentTempState = 'dangerous';
+        currentTempState = 'danger';
       } else if (temperature >= _tempWarningThreshold) {
         currentTempState = 'warning';
       } else {
@@ -218,7 +218,7 @@ class NotificationService {
     String? currentSoundState;
     if (soundLevel != null) {
       if (soundLevel >= _soundDangerThreshold) {
-        currentSoundState = 'dangerous';
+        currentSoundState = 'danger';
       } else if (soundLevel >= _soundWarningThreshold) {
         currentSoundState = 'warning';
       } else {
@@ -234,7 +234,7 @@ class NotificationService {
         notificationsToCreate.add({
           'type': 'gas',
           'status': currentGasState,
-          'message': currentGasState == 'dangerous'
+          'message': currentGasState == 'danger'
               ? 'Gas level is critically high: ${gasLevel.toStringAsFixed(2)}ppm'
               : currentGasState == 'warning'
                   ? 'Gas level is high: ${gasLevel.toStringAsFixed(2)}ppm'
@@ -251,7 +251,7 @@ class NotificationService {
         notificationsToCreate.add({
           'type': 'temperature',
           'status': currentTempState,
-          'message': currentTempState == 'dangerous'
+          'message': currentTempState == 'danger'
               ? 'Temperature is critically high: ${temperature.toStringAsFixed(1)}°C'
               : currentTempState == 'warning'
                   ? 'Temperature is high: ${temperature.toStringAsFixed(1)}°C'
@@ -268,7 +268,7 @@ class NotificationService {
         notificationsToCreate.add({
           'type': 'sound',
           'status': currentSoundState,
-          'message': currentSoundState == 'dangerous'
+          'message': currentSoundState == 'danger'
               ? 'Sound level is critically high: ${soundLevel.toStringAsFixed(1)}dB'
               : currentSoundState == 'warning'
                   ? 'Sound level is high: ${soundLevel.toStringAsFixed(1)}dB'
