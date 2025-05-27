@@ -194,6 +194,32 @@
     
     // Override the provided status with the calculated one
     status = actualStatus;
+    // Update the message to match the recalculated status
+    if (type === 'temperature') {
+      if (status === 'danger') {
+        message = `Temperature is DANGEROUS: ${value}°C`;
+      } else if (status === 'warning') {
+        message = `Temperature is HIGH: ${value}°C`;
+      } else {
+        message = `Temperature is normal: ${value}°C`;
+      }
+    } else if (type === 'gas') {
+      if (status === 'danger') {
+        message = `Gas level is DANGEROUS: ${value}ppm`;
+      } else if (status === 'warning') {
+        message = `Gas level is HIGH: ${value}ppm`;
+      } else {
+        message = `Gas level is normal: ${value}ppm`;
+      }
+    } else if (type === 'sound') {
+      if (status === 'danger') {
+        message = `Sound level is DANGEROUS: ${value}dB`;
+      } else if (status === 'warning') {
+        message = `Sound level is HIGH: ${value}dB`;
+      } else {
+        message = `Sound level is normal: ${value}dB`;
+      }
+    }
     console.log(`Threshold check: ${type} ${value} -> status: ${actualStatus}`);
   }
 } catch (thresholdError) {
