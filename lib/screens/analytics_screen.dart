@@ -3,18 +3,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:http/http.dart' as http; // Import http package
+import 'package:http/http.dart' as http;
 import '../config.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
-// Removed Provider import
-// Removed SensorDataProvider import
-import '../widgets/sensor_chart_widget.dart'; // Assuming this widget exists
-import '../widgets/common_background.dart'; // Use common background
-import '../models/capteur.dart' as api_model; // Assuming model exists
-
-// Define baseUrl locally or import from a config file
+import '../widgets/sensor_chart_widget.dart';
+import '../widgets/common_background.dart';
+import '../models/capteur.dart' as api_model;
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -39,65 +35,87 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // Function to fetch data directly from API
   Future<void> _fetchApiData() async {
-    if (!mounted) return;
+    print('Starting _fetchApiData on AnalyticsScreen'); // Log start of function
+    if (!mounted) {
+      print('Widget not mounted, aborting _fetchApiData');
+      return;
+    }
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      print('Set loading state to true and cleared error message');
     });
 
     try {
       // Access the AuthProvider to get the token
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final token = authProvider.token;
+      print(
+          'Retrieved token from AuthProvider: ${token != null ? "Token present" : "Token null"}');
 
       if (token == null) {
-        // Handle case where token is not available (user not logged in)
         setState(() {
           _errorMessage = 'Authentication token not found. Please log in.';
           _apiDataList = [];
           _isLoading = false;
+          print('Error: No authentication token found');
         });
         return;
       }
 
+      print('Making HTTP GET request to ${Config.baseUrl}/sensors');
       final response = await http.get(
         Uri.parse('${Config.baseUrl}/sensors'),
         headers: {
-          // Include the authorization header
           'Authorization': 'Bearer $token',
-          'Accept': 'application/json', // Added Accept header for clarity
+          'Accept': 'application/json',
         },
       );
 
-      if (!mounted) return;
+      print('Received response with status code: ${response.statusCode}');
+      if (!mounted) {
+        print('Widget not mounted after HTTP request, aborting');
+        return;
+      }
 
       if (response.statusCode == 200) {
+        print('Successfully fetched data, parsing response body');
         final List<dynamic> rawData = jsonDecode(response.body);
         setState(() {
           _apiDataList =
               rawData.map((data) => api_model.Capteur.fromJson(data)).toList();
           _isLoading = false;
+          print(
+              'Data parsed successfully, list length: ${_apiDataList.length}');
         });
       } else if (response.statusCode == 404) {
         setState(() {
           _errorMessage = 'No sensor data available yet.';
           _apiDataList = [];
           _isLoading = false;
+          print('404 Error: No sensor data available');
         });
       } else {
         setState(() {
           _errorMessage = 'Error fetching data: ${response.statusCode}';
           _apiDataList = [];
           _isLoading = false;
+          print(
+              'Error: Failed to fetch data, status code: ${response.statusCode}, body: ${response.body}');
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error fetching sensor data: $e');
-      if (!mounted) return;
+      debugPrint('Stack trace: $stackTrace');
+      if (!mounted) {
+        print('Widget not mounted after error, aborting');
+        return;
+      }
       setState(() {
-        _errorMessage = 'Could not connect to the server.';
+        _errorMessage = 'Could not connect to the server: $e';
         _apiDataList = [];
         _isLoading = false;
+        print('Error: Could not connect to server, exception: $e');
       });
     }
   }

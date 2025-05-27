@@ -158,15 +158,15 @@ const getNotificationStatus = (type, value, thresholds) => {
 
   switch (type) {
     case 'gas':
-      if (value >= thresholds.gasDangerThreshold) return 'dangerous';
+      if (value >= thresholds.gasDangerThreshold) return 'danger';
       if (value >= thresholds.gasWarningThreshold) return 'warning';
       break;
     case 'temperature':
-      if (value >= thresholds.tempDangerThreshold) return 'dangerous';
+      if (value >= thresholds.tempDangerThreshold) return 'danger';
       if (value >= thresholds.tempWarningThreshold) return 'warning';
       break;
     case 'sound':
-      if (value >= thresholds.soundDangerThreshold) return 'dangerous';
+      if (value >= thresholds.soundDangerThreshold) return 'danger';
       if (value >= thresholds.soundWarningThreshold) return 'warning';
       break;
   }
@@ -199,7 +199,7 @@ const handlePreformattedNotification = async (payload) => {
     if (adminUser.email) {
       const emailSubject = `Alert: ${payload.type.toUpperCase()} ${payload.status.toUpperCase()}`;
       const emailHtml = `
-        <div style="padding: 20px; background-color: ${payload.status === 'dangerous' ? '#ffebee' : '#fff3e0'};">
+        <div style="padding: 20px; background-color: ${payload.status === 'danger' ? '#ffebee' : '#fff3e0'};">
           <h2>Sensor Alert</h2>
           <p><strong>Type:</strong> ${payload.type}</p>
           <p><strong>Status:</strong> ${payload.status}</p>
@@ -266,14 +266,14 @@ const createSensorAlertNotification = async (type, status, value, thresholds) =>
     if (adminUser.email) {
       const emailSubject = `Alert: ${type.toUpperCase()} ${status.toUpperCase()}`;
       const emailHtml = `
-        <div style="padding: 20px; background-color: ${status === 'dangerous' ? '#ffebee' : '#fff3e0'};">
+        <div style="padding: 20px; background-color: ${status === 'danger' ? '#ffebee' : '#fff3e0'};">
           <h2>Sensor Alert</h2>
           <p><strong>Type:</strong> ${type}</p>
           <p><strong>Status:</strong> ${status} (${type === 'temperature' ? 
             `Threshold: ${status === 'warning' ? thresholds.tempWarningThreshold : thresholds.tempDangerThreshold}°C` : 
             `Threshold: ${status === 'warning' ? thresholds[`${type}WarningThreshold`] : thresholds[`${type}DangerThreshold`]}${type === 'gas' ? 'ppm' : 'dB'}`})</p>
           <p><strong>Value:</strong> ${value}${type === 'temperature' ? '°C' : type === 'gas' ? 'ppm' : 'dB'}</p>
-          <p><strong>Message:</strong> ${type.charAt(0).toUpperCase() + type.slice(1)} is ${status === 'dangerous' ? 'critically high' : 'high'}</p>
+          <p><strong>Message:</strong> ${type.charAt(0).toUpperCase() + type.slice(1)} is ${status === 'danger' ? 'critically high' : 'high'}</p>
           <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
         </div>
       `;
