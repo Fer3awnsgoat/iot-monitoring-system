@@ -199,8 +199,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   final uniqueKey = Key(
                                       notification['_id'] ?? index.toString());
 
+                                  // Make status color logic robust
+                                  String status = (notification['status']
+                                          ?.toString()
+                                          .toLowerCase()
+                                          .trim() ??
+                                      '');
                                   Color statusColor;
-                                  switch (notification['status']) {
+                                  switch (status) {
                                     case 'danger':
                                     case 'dangerous':
                                       statusColor = Colors.red;
