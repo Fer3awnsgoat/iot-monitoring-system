@@ -159,81 +159,71 @@
         error: 'Missing fields: type, status, message, value'
       });
     }
+
     try {
-  const thresholds = await Threshold.findOne().sort({ createdAt: -1 });
-  if (thresholds) {
-    // Recalculate status based on actual thresholds
-    let actualStatus = 'normal';
-    
-    if (type === 'temperature') {
-      if (value >= thresholds.tempDangerThreshold) {
-        actualStatus = 'danger';
-      } else if (value >= thresholds.tempWarningThreshold) {
-        actualStatus = 'warning';
+      const thresholds = await Threshold.findOne().sort({ createdAt: -1 });
+      if (thresholds) {
+        // Recalculate status based on actual thresholds
+        let actualStatus = 'normal';
+        
+        if (type === 'temperature') {
+          if (value >= thresholds.tempDangerThreshold) {
+            actualStatus = 'danger';
+          } else if (value >= thresholds.tempWarningThreshold) {
+            actualStatus = 'warning';
+          }
+        } else if (type === 'gas') {
+          if (value >= thresholds.gasDangerThreshold) {
+            actualStatus = 'danger';
+          } else if (value >= thresholds.gasWarningThreshold) {
+            actualStatus = 'warning';
+          }
+        } else if (type === 'sound') {
+          if (value >= thresholds.soundDangerThreshold) {
+            actualStatus = 'danger';
+          } else if (value >= thresholds.soundWarningThreshold) {
+            actualStatus = 'warning';
+          }
+        }
+        
+        // Override the provided status with the calculated one
+        status = actualStatus;
+        // Update the message to match the recalculated status
+        if (type === 'temperature') {
+          if (status === 'danger') {
+            message = `Temperature is DANGEROUS: ${value}°C`;
+          } else if (status === 'warning') {
+            message = `Temperature is HIGH: ${value}°C`;
+          } else {
+            message = `Temperature is normal: ${value}°C`;
+          }
+        } else if (type === 'gas') {
+          if (status === 'danger') {
+            message = `Gas level is DANGEROUS: ${value}ppm`;
+          } else if (status === 'warning') {
+            message = `Gas level is HIGH: ${value}ppm`;
+          } else {
+            message = `Gas level is normal: ${value}ppm`;
+          }
+        } else if (type === 'sound') {
+          if (status === 'danger') {
+            message = `Sound level is DANGEROUS: ${value}dB`;
+          } else if (status === 'warning') {
+            message = `Sound level is HIGH: ${value}dB`;
+          } else {
+            message = `Sound level is normal: ${value}dB`;
+          }
+        }
+        console.log(`Threshold check: ${type} ${value} -> status: ${actualStatus}`);
       }
-    } else if (type === 'gas') {
-      if (value >= thresholds.gasDangerThreshold) {
-        actualStatus = 'danger';
-      } else if (value >= thresholds.gasWarningThreshold) {
-        actualStatus = 'warning';
-      }
-    } else if (type === 'sound') {
-      if (value >= thresholds.soundDangerThreshold) {
-        actualStatus = 'danger';
-      } else if (value >= thresholds.soundWarningThreshold) {
-        actualStatus = 'warning';
-      }
+    } catch (thresholdError) {
+      console.error('Error checking thresholds:', thresholdError);
     }
-    
-    // Override the provided status with the calculated one
-    status = actualStatus;
-    // Update the message to match the recalculated status
-    if (type === 'temperature') {
-      if (status === 'danger') {
-        message = `Temperature is DANGEROUS: ${value}°C`;
-      } else if (status === 'warning') {
-        message = `Temperature is HIGH: ${value}°C`;
-      } else {
-        message = `Temperature is normal: ${value}°C`;
-      }
-    } else if (type === 'gas') {
-      if (status === 'danger') {
-        message = `Gas level is DANGEROUS: ${value}ppm`;
-      } else if (status === 'warning') {
-        message = `Gas level is HIGH: ${value}ppm`;
-      } else {
-        message = `Gas level is normal: ${value}ppm`;
-      }
-    } else if (type === 'sound') {
-      if (status === 'danger') {
-        message = `Sound level is DANGEROUS: ${value}dB`;
-      } else if (status === 'warning') {
-        message = `Sound level is HIGH: ${value}dB`;
-      } else {
-        message = `Sound level is normal: ${value}dB`;
-      }
-    }
-    console.log(`Threshold check: ${type} ${value} -> status: ${actualStatus}`);
-  }
-} catch (thresholdError) {
-  console.error('Error checking thresholds:', thresholdError);
-}
     try {
       const user = await User.findById(req.user.userId);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
-
-      // Check last notification for this user and type
-      const lastNotif = await Notification.findOne({ user: user._id, type }).sort({ timestamp: -1 });
-     if (lastNotif && lastNotif.status === status) {
-  // Update the message and value to reflect the latest reading
-  lastNotif.message = message;
-  lastNotif.value = value;
-  lastNotif.timestamp = ts;
-  await lastNotif.save();
-  return res.status(200).json({ message: 'Notification updated (status unchanged)', notification: lastNotif });
-}
 
       const notif = new Notification({
         type,
@@ -345,12 +335,7 @@
         }
 
         if (status !== 'normal') {
-          // Check last notification for this user and type
-          const lastNotif = await Notification.findOne({ user: user._id, type: check.type }).sort({ timestamp: -1 });
-          if (lastNotif && lastNotif.status === status) {
-            // Don't send duplicate notification
-            continue;
-          }
+          // Always create a new notification, no duplicate check
           const notif = new Notification({
             type: check.type,
             status,
@@ -462,12 +447,7 @@ router.post('/test-data', authenticateToken, async (req, res) => {
       }
 
       if (status !== 'normal') {
-        // Check last notification for this user and type
-        const lastNotif = await Notification.findOne({ user: user._id, type: check.type }).sort({ timestamp: -1 });
-        if (lastNotif && lastNotif.status === status) {
-          // Don't send duplicate notification
-          continue;
-        }
+        // Always create a new notification, no duplicate check
         const notif = new Notification({
           type: check.type,
           status,
