@@ -201,6 +201,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                                   Color statusColor;
                                   switch (notification['status']) {
+                                    case 'danger':
                                     case 'dangerous':
                                       statusColor = Colors.red;
                                       break;
@@ -310,18 +311,5 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       ),
     );
-  }
-
-  IconData _getIconForType(String? type) {
-    switch (type) {
-      case 'gas':
-        return Icons.gas_meter;
-      case 'temperature':
-        return Icons.thermostat;
-      case 'sound':
-        return Icons.volume_up;
-      default:
-        return Icons.notifications;
-    }
   }
 }
