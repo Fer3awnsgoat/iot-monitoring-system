@@ -8,7 +8,7 @@ const thresholdSchema = new mongoose.Schema({
   },
   tempThreshold: {
     type: Number, 
-    default: 30
+    default: 25
   },
   soundThreshold: {
     type: Number,
@@ -22,7 +22,7 @@ const thresholdSchema = new mongoose.Schema({
   },
   tempWarningThreshold: {
     type: Number,
-    default: 40
+    default: 27
   },
   soundWarningThreshold: {
     type: Number,
@@ -36,7 +36,7 @@ const thresholdSchema = new mongoose.Schema({
   },
   tempDangerThreshold: {
     type: Number,
-    default: 50
+    default: 31
   },
   soundDangerThreshold: {
     type: Number,
