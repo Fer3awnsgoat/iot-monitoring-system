@@ -149,7 +149,7 @@
     console.log('→ Enter POST /sensors/notifications');
     console.log('Payload:', req.body);
 
-    const { type, status, message, value, timestamp } = req.body;
+    let { type, status, message, value, timestamp } = req.body;
     // use provided timestamp or now
     const ts = timestamp ? new Date(timestamp) : new Date();
 
