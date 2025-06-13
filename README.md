@@ -1,12 +1,39 @@
 # IoT Monitoring System
 
-A full-stack IoT monitoring system built with Flutter, Node.js, and MQTT.
+A full-stack IoT monitoring system built with Flutter, Node.js, and MQTT for real-time environmental monitoring and data visualization.
+
+## Features
+- 📊 Real-time sensor data monitoring and visualization
+- 🔐 Secure user authentication and authorization
+- 📱 Cross-platform mobile application (iOS & Android)
+- 🔔 Push notifications for threshold alerts
+- 📈 Data analytics and statistics
+- 👥 Multi-user support with role-based access
+- 🔄 MQTT integration for IoT devices
+- 📱 Responsive and modern UI
 
 ## Project Structure
+```
+├── lib/                  # Flutter application code
+│   ├── screens/         # UI screens
+│   ├── providers/       # State management
+│   ├── models/          # Data models
+│   ├── widgets/         # Reusable UI components
+│   └── config.dart      # App configuration
+├── mon-backend/         # Node.js backend server
+│   ├── routes/         # API routes
+│   ├── models/         # Database models
+│   ├── middleware/     # Custom middleware
+│   └── config/         # Server configuration
+└── models/             # Shared data models
+```
 
-- `lib/` - Flutter application code
-- `mon-backend/` - Node.js backend server
-- `models/` - Data models for both frontend and backend
+## Prerequisites
+- Flutter SDK (latest stable version)
+- Node.js (v14 or higher)
+- MongoDB
+- MQTT Broker (HiveMQ Cloud or self-hosted)
+- Android Studio / Xcode (for mobile development)
 
 ## Setup Instructions
 
@@ -20,12 +47,14 @@ A full-stack IoT monitoring system built with Flutter, Node.js, and MQTT.
    npm install
    ```
 3. Create a `.env` file with the following variables:
-   ```
+   ```env
    MONGODB_URI=your_mongodb_uri
    JWT_SECRET=your_jwt_secret
    MQTT_USERNAME=your_mqtt_username
    MQTT_PASSWORD=your_mqtt_password
    MQTT_BROKER=your_mqtt_broker_url
+   PORT=3001
+   NODE_ENV=development
    ```
 4. Start the server:
    ```bash
@@ -37,23 +66,56 @@ A full-stack IoT monitoring system built with Flutter, Node.js, and MQTT.
    ```bash
    flutter pub get
    ```
-2. Update the `config.dart` file with your server URL
+2. Update the `config.dart` file with your server URL:
+   ```dart
+   static const String _prodUrl = 'your_production_url';
+   static const String _devUrl = 'your_development_url';
+   ```
 3. Run the app:
    ```bash
    flutter run
    ```
 
-## Features
-- Real-time sensor data monitoring
-- User authentication
-- MQTT integration for IoT devices
-- Push notifications
-- Data visualization
+## Deployment
+### Backend Deployment
+1. Deploy to Railway:
+   ```bash
+   railway up
+   ```
+2. Set environment variables in Railway dashboard
+3. Monitor deployment status in Railway logs
 
-## Technologies Used
-- Flutter
-- Node.js
-- Express.js
-- MongoDB
-- MQTT (HiveMQ Cloud)
-- JWT Authentication
+### Mobile App Deployment
+1. Android:
+   ```bash
+   flutter build apk --release
+   ```
+2. iOS:
+   ```bash
+   flutter build ios --release
+   ```
+
+## Security Features
+- JWT-based authentication
+- Secure password hashing with bcrypt
+- HTTPS enforcement in production
+- Secure storage for sensitive data
+- Role-based access control
+
+## Contributing
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+For support, email [your-email@example.com] or open an issue in the repository.
+
+## Acknowledgments
+- Flutter team for the amazing framework
+- Node.js community
+- HiveMQ for MQTT broker services
